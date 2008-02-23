@@ -30,7 +30,7 @@ function restrict_by_ip_menu($may_cache) {
   if ($may_cache) {
     $items[] = array(
       'path' => 'admin/settings/restrict_by_ip',
-      'title' => t('Restrict by IP'),
+      'title' => t('Restrict by IP settings'),
       'description' => t('Limit the IP address a user is allowed to login from.'),
       'callback' => 'drupal_get_form',
       'callback arguments' => 'restrict_by_ip_settings',
@@ -45,7 +45,7 @@ function restrict_by_ip_menu($may_cache) {
  */
 function restrict_by_ip_settings() {
   $form['heading'] = array(
-    '#value' => '<b>'. t('Configuration options for the Restrict By IP module:') .'</b>',
+    '#value' => '<b>'.t('Configuration options for the Restrict By IP module:').'</b>',
     '#weight' => -6,
   );
   $form['restrict_by_ip_error_page'] = array(
@@ -53,7 +53,7 @@ function restrict_by_ip_settings() {
     '#title' => t('Login denied page'),
     '#description' => t("This the address of the page to which the user will be redirected if they are not allowed to login."),
     '#weight' => -5,
-    '#default_value' => variable_get('restrict_by_ip_error_page', ''),
+    '#default_value' => variable_get('restrict_by_ip_error_page',''),
     );
 
   return system_settings_form($form);
@@ -76,29 +76,34 @@ function restrict_by_ip_user($op, &$edit, &$user, $category = NULL) {
   global $user ;
   switch ($op) {
     case 'load':
-      if ($user->uid) {
-        $result = db_query("SELECT restrict_by_ip_address FROM {restrict_by_ip} WHERE uid=%d", $user->uid);
+      if ($edit['uid']) {
+        $result = db_query("SELECT restrict_by_ip_address FROM {restrict_by_ip} WHERE uid=%d", $edit['uid']);
         if ($ur = db_fetch_object($result)) {
-          $user->restrict_by_ip = $ur->restrict_by_ip;
+          $user->restrict_by_ip = $ur->restrict_by_ip_address;
         }
       }
-      $addr = $_SERVER['REMOTE_ADDR'];
-
+    break;  /* end of load */
+		case 'login':
+     if ($user->uid) {
+        $result = db_query("SELECT restrict_by_ip_address FROM {restrict_by_ip} WHERE uid=%d", $user->uid);
+        if ($ur = db_fetch_object($result)) {
+          $user->restrict_by_ip = $ur->restrict_by_ip_address;
+        }
+      }
+     $addr = $_SERVER['REMOTE_ADDR'];
       // If $user->restrict_by_ip is Null, then the user isn't restricted.
       if ($user->restrict_by_ip) {
         // See if it's an allowed IP address for this user.
-        if ($addr == $user->restrict_by_ip) { 
-				  /* okay */
-        }
+        if ($addr == $user->restrict_by_ip) {
         // No, go to the error page.
-        else { 
-          drupal_goto(variable_get('restrict_by_ip_error_page', ''));
+          drupal_goto("/","restricted");
         }
+        else { /* okay  */}
       } /* end if restrict by ip */
-    break;  /* end of load */
-    case 'form':
-      if ($user->uid) {
-        $result = db_query("SELECT restrict_by_ip_address FROM {restrict_by_ip} WHERE uid=%d", $user->uid);
+    break;  /* end of login */
+		case 'form':
+      if ($edit['uid']) {
+        $result = db_query("SELECT restrict_by_ip_address FROM {restrict_by_ip} WHERE uid=%d", $edit['uid']);
         if ($ur = db_fetch_object($result)) {
           $user->restrict_by_ip = $ur->restrict_by_ip_address;
         }
@@ -119,20 +124,37 @@ function restrict_by_ip_user($op, &$edit, &$user, $category = NULL) {
         '#required' => FALSE,
       );
       return $form;
-    break; /* end of form */
-    case 'update':
+		break; /* end of form */
+		case 'update':
       $result = db_query(" SELECT * FROM {restrict_by_ip} WHERE {restrict_by_ip}.uid=%d ", $user->uid);
       if (!($oldnode = db_fetch_object($result))) {
         db_query("INSERT INTO {restrict_by_ip} (uid, restrict_by_ip_address) VALUES(%d, '%s')", $user->uid, $edit['restrict_by_ip']);
-        $edit['restrict_by_ip'] = NULL;
+				$edit['restrict_by_ip'] = NULL;
       }
       else {
           db_query("UPDATE {restrict_by_ip} SET restrict_by_ip_address='%s' WHERE uid=%d", $edit['restrict_by_ip'], $user->uid);
-          $edit['restrict_by_ip'] = NULL;
+					$edit['restrict_by_ip'] = NULL;
         }
-    break; /* end of update */
+		break; /* end of update */
   } /* end of switch */
   return array();
+}
+
+/**
+ * Implementation of hook_nodeapi().
+ */
+function restrict_by_ip_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
+  global $user ;
+  switch ($op) {
+		case 'load':
+      $mypath = explode("?", $_SERVER['REQUEST_URI']);
+        if ($mypath[1] == "restricted") {
+        // No, go to the error page.
+          drupal_goto('logout', 'destination='. variable_get('restrict_by_ip_error_page',''));
+        }
+        else { /* okay  */}
+    break;  /* end of load */
+  }
 }
 
 /**
