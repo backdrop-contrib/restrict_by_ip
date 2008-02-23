@@ -30,7 +30,7 @@ function restrict_by_ip_menu($may_cache) {
   if ($may_cache) {
     $items[] = array(
       'path' => 'admin/settings/restrict_by_ip',
-      'title' => t('Restrict by IP settings'),
+      'title' => t('Restrict by IP'),
       'description' => t('Limit the IP address a user is allowed to login from.'),
       'callback' => 'drupal_get_form',
       'callback arguments' => 'restrict_by_ip_settings',
