@@ -34,16 +34,8 @@ function restrict_by_ip_install() {
 * Implementation of hook_uninstall().
 */
 function restrict_by_ip_uninstall() {
-
-  switch ($GLOBALS['db_type']) {
-    case 'mysql':
-    case 'mysqli':
-      db_query("DROP TABLE {restrict_by_ip}");
-      break;
-    case 'pgsql':
-      db_query("DROP TABLE {restrict_by_ip}");
-      break;
-  }
+  db_query('DROP TABLE {restrict_by_ip}');
+  variable_del('restrict_by_ip_error_page');
   // clear the cache tables (see http://drupal.org/node/64279#comment-211282)
   cache_clear_all('*', 'cache', TRUE);
   cache_clear_all('*', 'cache_filter', TRUE);
