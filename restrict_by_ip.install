@@ -26,7 +26,7 @@ function restrict_by_ip_install() {
       ");
       break;
   }
-	watchdog ('restrict_by_ip', 'restrict_by_ip module installed');
+  watchdog('restrict_by_ip', 'restrict_by_ip module installed');
   drupal_set_message(t('The restrict_by_ip module was installed.'));
 }
 
@@ -42,5 +42,5 @@ function restrict_by_ip_uninstall() {
   cache_clear_all('*', 'cache_menu', TRUE);
   cache_clear_all('*', 'cache_page', TRUE);
 
-  watchdog ('restrict_by_ip', 'restrict_by_ip module removed');
+  watchdog('restrict_by_ip', 'restrict_by_ip module removed');
 }
