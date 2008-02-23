@@ -1,0 +1,3 @@
+; $Id$
+name = Restrict By IP
+description = "Enables limiting user login to specific IP Addresses."

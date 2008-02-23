@@ -1,0 +1,54 @@
+<?php
+// $Id$
+
+/**
+ * Implementation of hook_install().
+ * Creates a table of the variables that will be needed to use this module
+ */
+function restrict_by_ip_install() {
+  switch ($GLOBALS['db_type']) {
+    case 'mysql':
+    case 'mysqli':
+      db_query("CREATE TABLE {restrict_by_ip} (
+        uid int unsigned NOT NULL,
+        restrict_by_ip_address varchar(128),
+        PRIMARY KEY(uid)
+        ) /*!40100 DEFAULT CHARACTER SET utf8 */;
+      ");
+      break;
+
+    case 'pgsql':
+      db_query("CREATE TABLE {restrict_by_ip} (
+        uid int NOT NULL, 
+		    restrict_by_ip_address character(128)
+        PRIMARY KEY(uid)
+        );
+      ");
+      break;
+  }
+	watchdog ('restrict_by_ip', 'restrict_by_ip module installed');
+  drupal_set_message(t('The restrict_by_ip module was installed.'));
+}
+
+/**
+* Implementation of hook_uninstall().
+*/
+function restrict_by_ip_uninstall() {
+
+  switch ($GLOBALS['db_type']) {
+    case 'mysql':
+    case 'mysqli':
+      db_query("DROP TABLE {restrict_by_ip}");
+      break;
+    case 'pgsql':
+      db_query("DROP TABLE {restrict_by_ip}");
+      break;
+  }
+  // clear the cache tables (see http://drupal.org/node/64279#comment-211282)
+  cache_clear_all('*', 'cache', TRUE);
+  cache_clear_all('*', 'cache_filter', TRUE);
+  cache_clear_all('*', 'cache_menu', TRUE);
+  cache_clear_all('*', 'cache_page', TRUE);
+
+  watchdog ('restrict_by_ip', 'restrict_by_ip module removed');
+}
