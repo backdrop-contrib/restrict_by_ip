@@ -83,7 +83,6 @@ function restrict_by_ip_user($op, &$edit, &$user, $category = NULL) {
         }
       }
       $addr = $_SERVER['REMOTE_ADDR'];
-			print $addr;
 
       // If $user->restrict_by_ip is Null, then the user isn't restricted.
       if ($user->restrict_by_ip) {
