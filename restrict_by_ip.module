@@ -15,7 +15,7 @@ function restrict_by_ip_help($section) {
   switch ($section) {
 
     case 'admin/help#restrict_by_ip':
-      $output = '<p>'. t('The site administrator can limit certain users to being able to login only from certain IP Addresses.') .'</p>';
+      $output = '<p>'. t('The site administrator can limit a user to only be able to login from one certain IP Address.') .'</p>';
      return $output;
   }
 }
