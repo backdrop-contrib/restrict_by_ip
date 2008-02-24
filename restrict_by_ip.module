@@ -16,7 +16,7 @@ function restrict_by_ip_help($section) {
 
     case 'admin/help#restrict_by_ip':
       $output = '<p>'. t('The site administrator can limit a user to only be able to login from one certain IP Address.') .'</p>';
-     return $output;
+    return $output;
   }
 }
 
@@ -45,7 +45,7 @@ function restrict_by_ip_menu($may_cache) {
  */
 function restrict_by_ip_settings() {
   $form['heading'] = array(
-    '#value' => '<b>'.t('Configuration options for the Restrict By IP module:').'</b>',
+    '#value' => '<b>'. t('Configuration options for the Restrict By IP module:') .'</b>',
     '#weight' => -6,
   );
   $form['restrict_by_ip_error_page'] = array(
@@ -53,7 +53,7 @@ function restrict_by_ip_settings() {
     '#title' => t('Login denied page'),
     '#description' => t("This the address of the page to which the user will be redirected if they are not allowed to login."),
     '#weight' => -5,
-    '#default_value' => variable_get('restrict_by_ip_error_page',''),
+    '#default_value' => variable_get('restrict_by_ip_error_page', ''),
     );
 
   return system_settings_form($form);
@@ -76,64 +76,64 @@ function restrict_by_ip_user($op, &$edit, &$account, $category = NULL) {
   global $user ;
   switch ($op) {
     case 'load':
-     if (user_access('administer site configuration') || user_access('administer restrict by ip')) {
-  			if ($account->uid) {
-          $result = db_query("SELECT restrict_by_ip_address FROM {restrict_by_ip} WHERE uid=%d", $account->uid);
-          if ($ur = db_fetch_object($result)) {
-            $account->restrict_by_ip = $ur->restrict_by_ip_address;
-          }
-        }
-      }
-    break;  /* end of load */
-		case 'login':
-     if ($user->uid) {
-        $result = db_query("SELECT restrict_by_ip_address FROM {restrict_by_ip} WHERE uid=%d", $user->uid);
+    if (user_access('administer site configuration') || user_access('administer restrict by ip')) {
+      if ($account->uid) {
+        $result = db_query("SELECT restrict_by_ip_address FROM {restrict_by_ip} WHERE uid=%d", $account->uid);
         if ($ur = db_fetch_object($result)) {
-          $user->restrict_by_ip = $ur->restrict_by_ip_address;
+          $account->restrict_by_ip = $ur->restrict_by_ip_address;
         }
       }
-     $addr = $_SERVER['REMOTE_ADDR'];
-      // If $user->restrict_by_ip is Null, then the user isn't restricted.
-      if ($user->restrict_by_ip) {
-        // See if it's an allowed IP address for this user.
-        if ($addr == $user->restrict_by_ip) {
+    }
+    break;  /* end of load */
+    case 'login':
+    if ($user->uid) {
+      $result = db_query("SELECT restrict_by_ip_address FROM {restrict_by_ip} WHERE uid=%d", $user->uid);
+      if ($ur = db_fetch_object($result)) {
+        $user->restrict_by_ip = $ur->restrict_by_ip_address;
+      }
+    }
+    $addr = $_SERVER['REMOTE_ADDR'];
+    // If $user->restrict_by_ip is Null, then the user isn't restricted.
+    if ($user->restrict_by_ip) {
+      // See if it's an allowed IP address for this user.
+      if ($addr == $user->restrict_by_ip) {
         // No, go to the error page using the nodeapi load function defined below
-          drupal_goto("/","restricted");
-        }
-        else { /* okay  */}
-      } /* end if restrict by ip */
-    break;  /* end of login */
-		case 'form':
-     if (user_access('administer site configuration') || user_access('administer restrict by ip')) {
-        $form['restrict_by_ip'] = array('#type' => 'fieldset',
-          '#title' => t('Restrict by IP settings'),
-          '#weight' => 5,
-          '#collapsible' => TRUE,
-	  			//collapse if there is no restricted ip address
-          '#collapsed' => !($account->restrict_by_ip),
-        );
-        $form['restrict_by_ip']['restrict_by_ip'] = array('#type' => 'textfield',
-          '#title' => t('Restricted IP Address'),
-          '#default_value' => $account->restrict_by_ip,
-          '#size' => 20,
-          '#maxlength' => 15,
-          '#description' => t('Enter the IP address that this user is allowed to login from (xxx.xxx.xxx.xxx).'),
-          '#required' => FALSE,
-        );
-        return $form;
+        drupal_goto("/", "restricted");
       }
-		break; /* end of form */
-		case 'update':
-     if (user_access('administer site configuration') || user_access('administer restrict by ip')) {
-        $result = db_query(" SELECT * FROM {restrict_by_ip} WHERE {restrict_by_ip}.uid=%d ", $account->uid);
-        if (!($oldnode = db_fetch_object($result))) {
-          db_query("INSERT INTO {restrict_by_ip} (uid, restrict_by_ip_address) VALUES(%d, '%s')", $account->uid, $edit['restrict_by_ip']);
-        }
-        else {
-            db_query("UPDATE {restrict_by_ip} SET restrict_by_ip_address='%s' WHERE uid=%d", $edit['restrict_by_ip'], $account->uid);
-        }
-     }
-		break; /* end of update */
+      else { /* okay  */}
+    } /* end if restrict by ip */
+    break;  /* end of login */
+    case 'form':
+    if (user_access('administer site configuration') || user_access('administer restrict by ip')) {
+      $form['restrict_by_ip'] = array('#type' => 'fieldset',
+        '#title' => t('Restrict by IP settings'),
+        '#weight' => 5,
+        '#collapsible' => TRUE,
+        //collapse if there is no restricted ip address
+        '#collapsed' => !($account->restrict_by_ip),
+      );
+      $form['restrict_by_ip']['restrict_by_ip'] = array('#type' => 'textfield',
+        '#title' => t('Restricted IP Address'),
+        '#default_value' => $account->restrict_by_ip,
+        '#size' => 20,
+        '#maxlength' => 15,
+        '#description' => t('Enter the IP address that this user is allowed to login from (xxx.xxx.xxx.xxx).'),
+        '#required' => FALSE,
+      );
+      return $form;
+    }
+    break; /* end of form */
+    case 'update':
+    if (user_access('administer site configuration') || user_access('administer restrict by ip')) {
+      $result = db_query(" SELECT * FROM {restrict_by_ip} WHERE {restrict_by_ip}.uid=%d ", $account->uid);
+      if (!($oldnode = db_fetch_object($result))) {
+        db_query("INSERT INTO {restrict_by_ip} (uid, restrict_by_ip_address) VALUES(%d, '%s')", $account->uid, $edit['restrict_by_ip']);
+      }
+      else {
+        db_query("UPDATE {restrict_by_ip} SET restrict_by_ip_address='%s' WHERE uid=%d", $edit['restrict_by_ip'], $account->uid);
+      }
+    }
+    break; /* end of update */
   } /* end of switch */
   return array();
 }
@@ -144,11 +144,11 @@ function restrict_by_ip_user($op, &$edit, &$account, $category = NULL) {
 function restrict_by_ip_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
   global $user ;
   switch ($op) {
-		case 'load':
-      $mypath = explode("?", $_SERVER['REQUEST_URI']);
+    case 'load':
+      $mypath = explode("?", request_uri());
         if ($mypath[1] == "restricted") {
         // No, go to the error page.
-          drupal_goto('logout', 'destination='. variable_get('restrict_by_ip_error_page',''));
+          drupal_goto('logout', 'destination='. variable_get('restrict_by_ip_error_page', ''));
         }
         else { /* okay  */}
     break;  /* end of load */
@@ -159,22 +159,22 @@ function restrict_by_ip_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
  * Menu callback: administer roles.
  */
 /**
-*function restrict_by_ip_role() {
-*    // Add field to the edit role form.
-*    $form['restrict_by_ip'] = array('#type' => 'fieldset',
-*      '#title' => t('Restrict by IP settings'),
-*      '#weight' => 5,
-*      '#collapsible' => TRUE,
-*      '#collapsed' => TRUE,
-*    );
-*    $form['restrict_by_ip']['restrict_by_ip'] = array('#type' => 'textfield',
-*      '#title' => t('Restricted IP Address'),
-*      '#default_value' => $role->restrict_by_ip,
-*      '#size' => 20,
-*      '#maxlength' => 15,
-*      '#description' => t('Enter the IP address that this role is allowed to login from (xxx.xxx.xxx.xxx).'),
-*      '#required' => FALSE,
-*    );
-*  return $form;
-*}
-*/
+ * function restrict_by_ip_role() {
+ *    // Add field to the edit role form.
+ *    $form['restrict_by_ip'] = array('#type' => 'fieldset',
+ *      '#title' => t('Restrict by IP settings'),
+ *      '#weight' => 5,
+ *      '#collapsible' => TRUE,
+ *      '#collapsed' => TRUE,
+ *    );
+ *    $form['restrict_by_ip']['restrict_by_ip'] = array('#type' => 'textfield',
+ *      '#title' => t('Restricted IP Address'),
+ *      '#default_value' => $role->restrict_by_ip,
+ *      '#size' => 20,
+ *      '#maxlength' => 15,
+ *      '#description' => t('Enter the IP address that this role is allowed to login from (xxx.xxx.xxx.xxx).'),
+ *      '#required' => FALSE,
+ *    );
+ *  return $form;
+ * }
+ */

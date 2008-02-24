@@ -31,8 +31,8 @@ function restrict_by_ip_install() {
 }
 
 /**
-* Implementation of hook_uninstall().
-*/
+ * Implementation of hook_uninstall().
+ */
 function restrict_by_ip_uninstall() {
   db_query('DROP TABLE {restrict_by_ip}');
   variable_del('restrict_by_ip_error_page');
