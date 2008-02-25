@@ -11,7 +11,15 @@ function restrict_by_ip_install() {
     case 'mysqli':
       db_query("CREATE TABLE {restrict_by_ip} (
         uid int unsigned NOT NULL,
-        restrict_by_ip_address varchar(128),
+        restrict_by_ip_type int unsigned,
+        restrict_ip_addr1_q1 int unsigned,
+        restrict_ip_addr1_q2 int unsigned,
+        restrict_ip_addr1_q3 int unsigned,
+        restrict_ip_addr1_q4 int unsigned,
+        restrict_ip_addr2_q1 int unsigned,
+        restrict_ip_addr2_q2 int unsigned,
+        restrict_ip_addr2_q3 int unsigned,
+        restrict_ip_addr2_q4 int unsigned,
         PRIMARY KEY(uid)
         ) /*!40100 DEFAULT CHARACTER SET utf8 */;
       ");
@@ -20,14 +28,22 @@ function restrict_by_ip_install() {
     case 'pgsql':
       db_query("CREATE TABLE {restrict_by_ip} (
         uid int NOT NULL, 
-		    restrict_by_ip_address character(128)
+        restrict_by_ip_type int,
+        restrict_ip_addr1_q1 int,
+        restrict_ip_addr1_q2 int,
+        restrict_ip_addr1_q3 int,
+        restrict_ip_addr1_q4 int,
+        restrict_ip_addr2_q1 int,
+        restrict_ip_addr2_q2 int,
+        restrict_ip_addr2_q3 int,
+        restrict_ip_addr2_q4 int,
         PRIMARY KEY(uid)
         );
       ");
       break;
   }
   watchdog('restrict_by_ip', 'restrict_by_ip module installed');
-  drupal_set_message(t('The restrict_by_ip module was installed.'));
+  drupal_set_message(t('The Restrict by IP Address module was installed. You may want to go to the <a href="!settings">settings page now</a>.', array('!settings' => url('admin/settings/restrict_by_ip'))));
 }
 
 /**
