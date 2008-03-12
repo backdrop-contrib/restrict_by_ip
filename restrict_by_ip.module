@@ -116,16 +116,20 @@ function restrict_by_ip_user($op, &$edit, &$account, $category = NULL) {
         if ($addr[1] == $user->restrict_ip_addr1_q2) {
           if ($addr[2] == $user->restrict_ip_addr1_q3) {
             if ($addr[3] == $user->restrict_ip_addr1_q4) {
-              // No, go to the error page using the nodeapi load function defined below
-              drupal_goto("/", "restricted");
+						  // OKAY
+              drupal_goto("/");
             }
             if (($user->restrict_by_ip_type == 2) && ($addr[3] >= $user->restrict_ip_addr1_q4) && ($addr[3] <= $user->restrict_ip_addr2_q4)) {
-              drupal_goto("/", "restricted");
+						  // OKAY
+              drupal_goto("/");
             }
           }
         }
       }
-      else { /* okay  */}
+      else {
+        // No, go to the error page using the nodeapi load function defined below
+			  drupal_goto("/", "restricted");
+			}
     } /* end if restrict by ip */
     break;  /* end of login */
     case 'form':
