@@ -14,7 +14,8 @@ function restrict_by_ip_help($section) {
   switch ($section) {
 
     case 'admin/help#restrict_by_ip':
-      $output = '<p>'. t('The site administrator can limit a user to only be able to login from a certain IP Address, or a short range.') .'</p>';
+      $output = '<p>'. t('The site administrator can limit a user to only be able to login from a 
+        certain IP Address, or a short range.') .'</p>';
     return $output;
   }
 }
@@ -46,7 +47,8 @@ function restrict_by_ip_settings() {
   $form['restrict_by_ip_error_page'] = array(
     '#type' => 'textfield',
     '#title' => t('Login denied page'),
-    '#description' => t("This the address of the page to which the user will be redirected if they are not allowed to login. If you don't set this the user will not know why they couldn't login"),
+    '#description' => t("This the address of the page to which the user will be redirected if they are not 
+      allowed to login. If you don't set this the user will not know why they couldn't login"),
     '#weight' => -5,
     '#default_value' => variable_get('restrict_by_ip_error_page', ''),
     '#required' => TRUE
@@ -110,27 +112,29 @@ function restrict_by_ip_user($op, &$edit, &$account, $category = NULL) {
     }
     $addr = explode(".", $_SERVER['REMOTE_ADDR']);
     // If $user->restrict_by_ip is Null, then the user isn't restricted.
-    if ($user->restrict_by_ip_type) {
+    if (($user->restrict_by_ip_type) || ($user->restrict_by_ip_type == 2)) {
       // See if it's an allowed IP address for this user.
       if ($addr[0] == $user->restrict_ip_addr1_q1) {
         if ($addr[1] == $user->restrict_ip_addr1_q2) {
           if ($addr[2] == $user->restrict_ip_addr1_q3) {
             if ($addr[3] == $user->restrict_ip_addr1_q4) {
-						  // OKAY
-              drupal_goto("/");
-            }
-            if (($user->restrict_by_ip_type == 2) && ($addr[3] >= $user->restrict_ip_addr1_q4) && ($addr[3] <= $user->restrict_ip_addr2_q4)) {
-						  // OKAY
+              // OKAY
               drupal_goto("/");
             }
           }
+          if (($user->restrict_by_ip_type == 2) && 
+            ($addr[3] >= $user->restrict_ip_addr1_q4) && 
+            ($addr[3] <= $user->restrict_ip_addr2_q4) &&
+            ($addr[2] >= $user->restrict_ip_addr1_q3) && 
+            ($addr[2] <= $user->restrict_ip_addr2_q3)) {
+            // OKAY
+             drupal_goto("/");
+          }
         }
       }
-      else {
-        // No, go to the error page using the nodeapi load function defined below
-			  drupal_goto("/", "restricted");
-			}
+    drupal_goto("/", "restricted");
     } /* end if restrict by ip */
+    // No, go to the error page using the nodeapi load function defined below
     break;  /* end of login */
     case 'form':
     print_r($form_values);
@@ -276,7 +280,8 @@ function restrict_by_ip_user($op, &$edit, &$account, $category = NULL) {
         $i=1;
         foreach ($ip_fields1 as $quad) {
           if ((!preg_match('/^\d*$/', $edit[$quad])) || ($edit[$quad] < 0) || ($edit[$quad] > 255)) {
-            form_set_error($quad, t('Illegal value for the Restricted IP Address, quad number: %quadnum . Each quad must be an integer between 0 and 255. ', array('%quadnum' => $i)));
+            form_set_error($quad, t('Illegal value for the Restricted IP Address, quad number: %quadnum . 
+              Each quad must be an integer between 0 and 255. ', array('%quadnum' => $i)));
           }
           $i++;
         }
@@ -286,15 +291,17 @@ function restrict_by_ip_user($op, &$edit, &$account, $category = NULL) {
           $i=1;
           foreach ($ip_fields2 as $quad) {
             if ((!preg_match('/^\d*$/', $edit[$quad])) || ($edit[$quad] < 0) || ($edit[$quad] > 255) ) {
-              form_set_error($quad, t('Illegal value for the Restricted range, quad number: %quadnum . Each quad must be an integer between 0 and 255. ', array('%quadnum' => $i)));
+              form_set_error($quad, t('Illegal value for the Restricted range, quad number: %quadnum . 
+                Each quad must be an integer between 0 and 255. ', array('%quadnum' => $i)));
             }
           $i++;
           }
-          // limit the range to be in the last quad
+          // limit the range to be in the last 2 quads
           $i=1;
-          for ($i=0; $i<3; $i++) {
+          for ($i=0; $i<2; $i++) {
             if ($edit[$ip_fields1[$i]] != $edit[$ip_fields2[$i]]) {
-              form_set_error($ip_fields1[$i], t('Illegal value for the Restricted range, quad number: %quadnum must match Restricted IP Address %quadnum. ', array('%quadnum' => ($i+1))));
+              form_set_error($ip_fields1[$i], t('Illegal value for the Restricted range, quad number: %quadnum 
+                must match Restricted IP Address %quadnum. ', array('%quadnum' => ($i+1))));
               form_set_error($ip_fields2[$i], t('Fields do not match'));
             }
           }
