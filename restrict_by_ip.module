@@ -241,7 +241,7 @@ function restrict_by_ip_user($op, &$edit, &$account, $category = NULL) {
         );
       }
       else if (($userexists) && (!$edit['restrict_by_ip_type'])) {
-        db_query("DELETE FROM {restrict_by_ip} WHERE restrict_by_ip.uid = %d", $account->uid);
+        db_query("DELETE FROM {restrict_by_ip} WHERE {restrict_by_ip}.uid = %d", $account->uid);
       }
       else {
         db_query("UPDATE {restrict_by_ip} SET 
