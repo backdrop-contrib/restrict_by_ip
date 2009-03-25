@@ -309,4 +309,3 @@ function _restrict_by_ip_cidrcheck($iptocheck, $ipslashcidr) {
   //to check are the same
   return ($ip_ip_net == $ip_net);
 }
-?>
