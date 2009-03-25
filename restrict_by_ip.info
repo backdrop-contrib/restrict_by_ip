@@ -1,3 +1,11 @@
 ; $Id$
 name = Restrict By IP
-description = "Enables limiting user login to specific IP Addresses."
+package = Access control
+description = Enables limiting user login to specific IP Addresses.
+core = 6.x
+
+; Information added by drupal.org packaging script on 2008-02-16
+version = "6.x-1.0"
+core = "6.x"
+project = "restrict_by_ip"
+datestamp = "1203183902"

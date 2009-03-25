@@ -6,57 +6,60 @@
  * Creates a table of the variables that will be needed to use this module
  */
 function restrict_by_ip_install() {
-  switch ($GLOBALS['db_type']) {
-    case 'mysql':
-    case 'mysqli':
-      db_query("CREATE TABLE {restrict_by_ip} (
-        uid int unsigned NOT NULL,
-        restrict_by_ip_type int unsigned,
-        restrict_ip_addr1_q1 int unsigned,
-        restrict_ip_addr1_q2 int unsigned,
-        restrict_ip_addr1_q3 int unsigned,
-        restrict_ip_addr1_q4 int unsigned,
-        restrict_ip_addr2_q1 int unsigned,
-        restrict_ip_addr2_q2 int unsigned,
-        restrict_ip_addr2_q3 int unsigned,
-        restrict_ip_addr2_q4 int unsigned,
-        PRIMARY KEY(uid)
-        ) /*!40100 DEFAULT CHARACTER SET utf8 */;
-      ");
-      break;
+  $ret = drupal_install_schema('restrict_by_ip');
 
-    case 'pgsql':
-      db_query("CREATE TABLE {restrict_by_ip} (
-        uid int NOT NULL, 
-        restrict_by_ip_type int,
-        restrict_ip_addr1_q1 int,
-        restrict_ip_addr1_q2 int,
-        restrict_ip_addr1_q3 int,
-        restrict_ip_addr1_q4 int,
-        restrict_ip_addr2_q1 int,
-        restrict_ip_addr2_q2 int,
-        restrict_ip_addr2_q3 int,
-        restrict_ip_addr2_q4 int,
-        PRIMARY KEY(uid)
-        );
-      ");
-      break;
+  $failed = array();
+  foreach ($ret as $query) {
+    if (!$query['success']) {
+      $failed[] = $query['query'];
+    }
   }
-  watchdog('restrict_by_ip', 'restrict_by_ip module installed');
-  drupal_set_message(t('The Restrict by IP Address module was installed. You may want to go to the <a href="!settings">settings page now</a>.', array('!settings' => url('admin/settings/restrict_by_ip'))));
+  if (empty($failed)) {
+    drupal_set_message(t('Restrict Logon By IP module installed successfully.'));
+  }
+  else {
+    drupal_set_message(t('Table installation for the Restrict Logon By IP module was unsuccessful. The following queries failed: !queries', array('!queries' => theme('item_list', $failed))), 'error');
+  }
 }
+
+/**
+* Implementation of hook_schema().
+*/
+function restrict_by_ip_schema() {
+  $schema['restrict_by_ip']    = array(
+    'description'              => t('The Restrict By IP Table'),
+    'fields'                   => array(
+      'uid'                    => array(
+        'type'                 => 'int',
+        'not null'             => TRUE,
+        'unsigned'             => TRUE
+      ),
+      'restrict_by_ip_type'    => array(
+        'type'                 => 'int',
+        'not null'             => TRUE,
+        'unsigned'             => TRUE
+      ),
+      'restrict_by_ip_address' => array(
+        'type'                 => 'varchar',
+        'length'               => 128,
+      ),
+    ),
+    'primary key' => array('uid'),
+  );
+  return $schema;
+} 
 
 /**
  * Implementation of hook_uninstall().
  */
 function restrict_by_ip_uninstall() {
-  db_query('DROP TABLE {restrict_by_ip}');
-  variable_del('restrict_by_ip_error_page');
-  // clear the cache tables (see http://drupal.org/node/64279#comment-211282)
-  cache_clear_all('*', 'cache', TRUE);
-  cache_clear_all('*', 'cache_filter', TRUE);
-  cache_clear_all('*', 'cache_menu', TRUE);
-  cache_clear_all('*', 'cache_page', TRUE);
-
-  watchdog('restrict_by_ip', 'restrict_by_ip module removed');
+  drupal_uninstall_schema('restrict_by_ip');
+  // Drop variables.
+  $variables = array(
+    'restrict_by_ip_user_registration',
+  );
+  foreach ($variables as $variable) {
+    variable_del($variable);
+  }
+  drupal_set_message(t('Restrict Logon By IP module uninstalled successfully.'));
 }

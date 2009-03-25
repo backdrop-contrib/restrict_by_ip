@@ -3,352 +3,310 @@
 
 /**
  * @file
- * Allows the admin to select which IP Addresses a user can login from for this site.
- *  Some of the code below is taken from the cck_ipaddress_module
- */
+ * Allows the admin to select which ip addresses a user can login from for this site
+ * Some of the code below is taken from the cck_ipaddress_module
+*/
 
 /**
- * Implementation of hook_help().
+ * Implementation of hook_help()
  */
 function restrict_by_ip_help($section) {
   switch ($section) {
-
     case 'admin/help#restrict_by_ip':
-      $output = '<p>'. t('The site administrator can limit a user to only be able to login from a 
-        certain IP Address, or a short range.') .'</p>';
-    return $output;
-  }
+      $output = '<p>The site administrator can limit a user to only be able to login from certain IP Addresses or ranges of IP Addresses using CIDR notation.</p>';
+      break;
+    }
+  return $output;
 }
 
 /**
- * Implementation of hook_menu().
- *  Add a menu item to the Administer >> Site building menu for displaying the restrict_by_ip.
+ * Implementation of hook_menu()
+ * Add a menu item to the ddminister >> site building menu for displaying the restrict_by_ip
  */
-function restrict_by_ip_menu($may_cache) {
+function restrict_by_ip_menu() {
   $items = array();
-
-  if ($may_cache) {
-    $items[] = array(
-      'path' => 'admin/settings/restrict_by_ip',
-      'title' => t('Restrict by IP settings'),
-      'description' => t('Limit the IP address a user is allowed to login from.'),
-      'callback' => 'drupal_get_form',
-      'callback arguments' => 'restrict_by_ip_settings',
-      'access' => (user_access('administer site configuration') || user_access('administer restrict by ip')),
-    );
-  }
+  $items['admin/settings/restrict_by_ip'] = array(
+    'title'            => t('Restrict by IP settings'),
+    'description'      => t('Limit the IP address a user is allowed to login from.'),
+    'page callback'    => 'drupal_get_form',
+    'page arguments'   => array('restrict_by_ip_settings'),
+    'access arguments' => array('administer restrict by ip'),
+  );
   return $items;
 }
 
 /**
- * menu callback to configure module settings.
- */
-function restrict_by_ip_settings() {
-  $form['restrict_by_ip_error_page'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Login denied page'),
-    '#description' => t("This the address of the page to which the user will be redirected if they are not 
-      allowed to login. If you don't set this the user will not know why they couldn't login"),
-    '#weight' => -5,
-    '#default_value' => variable_get('restrict_by_ip_error_page', ''),
-    '#required' => TRUE
-    );
-
-  return system_settings_form($form);
-}
-
-/**
- * Implementation of hook_perm().
+ * Implementation of hook_perm()
  */
 function restrict_by_ip_perm() {
   return array('administer restrict by ip');
 }
 
 /**
- * Implementation of hook_user().
- *  Checks the user's IP Address on login.
- *  If they are not restricted, or logging in from the appropriate address
- *  allow registration to continue. If not, then redirect to a designated page.
+ * Menu callback to configure module settings
  */
-function restrict_by_ip_user($op, &$edit, &$account, $category = NULL) {
-  global $user ;
-  switch ($op) {
-    case 'load':
-    if (user_access('administer site configuration') || user_access('administer restrict by ip')) {
-      if ($account->uid) {
-        $result = db_query("SELECT * FROM {restrict_by_ip} WHERE uid=%d", $account->uid);
-        if ($usrdata = db_fetch_object($result)) {
-          $account->restrict_by_ip_type = $usrdata->restrict_by_ip_type;
-          $account->restrict_ip_addr1_q1 = $usrdata->restrict_ip_addr1_q1;
-          $account->restrict_ip_addr1_q2 = $usrdata->restrict_ip_addr1_q2;
-          $account->restrict_ip_addr1_q3 = $usrdata->restrict_ip_addr1_q3;
-          $account->restrict_ip_addr1_q4 = $usrdata->restrict_ip_addr1_q4;
-          if ($account->restrict_by_ip_type == 2) {
-            $account->restrict_ip_addr2_q1 = $usrdata->restrict_ip_addr2_q1;
-            $account->restrict_ip_addr2_q2 = $usrdata->restrict_ip_addr2_q2;
-            $account->restrict_ip_addr2_q3 = $usrdata->restrict_ip_addr2_q3;
-            $account->restrict_ip_addr2_q4 = $usrdata->restrict_ip_addr2_q4;
-          }
-        }
-      }
-    }
-    break;  /* end of load */
-    case 'login':
-    if ($user->uid) {
-      $result = db_query("SELECT * FROM {restrict_by_ip} WHERE uid=%d", $user->uid);
-      if ($usrdata = db_fetch_object($result)) {
-          $user->restrict_by_ip_type = $usrdata->restrict_by_ip_type;
-          $user->restrict_ip_addr1_q1 = $usrdata->restrict_ip_addr1_q1;
-          $user->restrict_ip_addr1_q2 = $usrdata->restrict_ip_addr1_q2;
-          $user->restrict_ip_addr1_q3 = $usrdata->restrict_ip_addr1_q3;
-          $user->restrict_ip_addr1_q4 = $usrdata->restrict_ip_addr1_q4;
-          if ($user->restrict_by_ip_type == 2) {
-            $user->restrict_ip_addr2_q1 = $usrdata->restrict_ip_addr2_q1;
-            $user->restrict_ip_addr2_q2 = $usrdata->restrict_ip_addr2_q2;
-            $user->restrict_ip_addr2_q3 = $usrdata->restrict_ip_addr2_q3;
-            $user->restrict_ip_addr2_q4 = $usrdata->restrict_ip_addr2_q4;
-          }
-      }
-    }
-    $addr = explode(".", $_SERVER['REMOTE_ADDR']);
-    // If $user->restrict_by_ip is Null, then the user isn't restricted.
-    if (($user->restrict_by_ip_type) || ($user->restrict_by_ip_type == 2)) {
-      // See if it's an allowed IP address for this user.
-      if ($addr[0] == $user->restrict_ip_addr1_q1) {
-        if ($addr[1] == $user->restrict_ip_addr1_q2) {
-          if ($addr[2] == $user->restrict_ip_addr1_q3) {
-            if ($addr[3] == $user->restrict_ip_addr1_q4) {
-              // OKAY
-              drupal_goto("/");
-            }
-          }
-          if (($user->restrict_by_ip_type == 2) && 
-            ($addr[3] >= $user->restrict_ip_addr1_q4) && 
-            ($addr[3] <= $user->restrict_ip_addr2_q4) &&
-            ($addr[2] >= $user->restrict_ip_addr1_q3) && 
-            ($addr[2] <= $user->restrict_ip_addr2_q3)) {
-            // OKAY
-             drupal_goto("/");
-          }
-        }
-      }
-    drupal_goto("/", "restricted");
-    } /* end if restrict by ip */
-    // No, go to the error page using the nodeapi load function defined below
-    break;  /* end of login */
-    case 'form':
-    print_r($form_values);
-    if (user_access('administer site configuration') || user_access('administer restrict by ip')) {
-      drupal_add_css(drupal_get_path('module', 'restrict_by_ip') .'/restrict_by_ip.css', 'module', 'screen', FALSE);
-      $form['#multistep'] = TRUE;
-      $form['#redirect'] = FALSE;
-      $form['restrict_by_ip'] = array('#type' => 'fieldset',
-        '#attributes' => array('class' => 'restrict-by-ip'),
-        '#title' => t('Restrict by IP settings'),
-        '#weight' => 5,
-        '#collapsible' => TRUE,
-        //collapse if there is no restricted ip address
-        '#collapsed' => !($edit['restrict_by_ip_type']),
-      );
-      $form['restrict_by_ip']['restrict_by_ip_type'] = array(
-        '#type' => 'radios',
-        '#title' => t('Type of restriction'),
-        '#default_value' => $account->restrict_by_ip_type,
-        '#options' => array(t('None'), t('Single IP'), t('IP Range')),
-      );
-        if ((!$edit['restrict_by_ip_type']) || ($edit['addr1_q1'])) {
-          $form['#redirect'] = 'user/'. $account->uid;
-        }
-      if ($edit['restrict_by_ip_type']) {
-        $form['restrict_by_ip']['addr1_q1'] = array('#type' => 'textfield',
-          '#title' => 'Restricted IP Address',
-          '#label' => 'labelhere',
-          '#default_value' => $account->restrict_ip_addr1_q1,
-          '#size' => 3,
-          '#maxlength' => 3,
-        );
-        $form['restrict_by_ip']['addr1_q2'] = array('#type' => 'textfield',
-          '#default_value' => $account->restrict_ip_addr1_q2,
-          '#size' => 3,
-          '#maxlength' => 3,
-        );
-        $form['restrict_by_ip']['addr1_q3'] = array('#type' => 'textfield',
-          '#default_value' => $account->restrict_ip_addr1_q3,
-          '#size' => 3,
-          '#maxlength' => 3,
-        );
-        $form['restrict_by_ip']['addr1_q4'] = array('#type' => 'textfield',
-          '#default_value' => $account->restrict_ip_addr1_q4,
-          '#size' => 3,
-          '#maxlength' => 3,
-          '#description' => t('Enter the IP address that this user is allowed to login from (xxx.xxx.xxx.xxx).'),
-        );
-        if ($edit['restrict_by_ip_type'] == 2) {
-          $form['restrict_by_ip']['addr2_q1'] = array('#type' => 'textfield',
-            '#title' => "Restricted range",
-            '#default_value' => $account->restrict_ip_addr2_q1,
-            '#size' => 3,
-            '#maxlength' => 3,
-          );
-          $form['restrict_by_ip']['addr2_q2'] = array('#type' => 'textfield',
-            '#default_value' => $account->restrict_ip_addr2_q2,
-            '#size' => 3,
-            '#maxlength' => 3,
-          );
-          $form['restrict_by_ip']['addr2_q3'] = array('#type' => 'textfield',
-            '#default_value' => $account->restrict_ip_addr2_q3,
-            '#size' => 3,
-            '#maxlength' => 3,
-          );
-          $form['restrict_by_ip']['addr2_q4'] = array('#type' => 'textfield',
-            '#default_value' => $account->restrict_ip_addr2_q4,
-            '#size' => 3,
-            '#maxlength' => 3,
-            '#description' => t('If you need a range, enter it here.'),
-          );
-        }
-      }
-      return $form;
-    }
-    break; /* end of form */
-    case 'update':
-    if (user_access('administer site configuration') || user_access('administer restrict by ip')) {
-      $result = db_query(" SELECT * FROM {restrict_by_ip} WHERE {restrict_by_ip}.uid=%d ", $account->uid);
-      if (!($userexists = db_fetch_object($result)) && ($edit['restrict_by_ip_type'])) {
-        db_query("INSERT INTO {restrict_by_ip} (
-          uid,
-          restrict_by_ip_type,
-          restrict_ip_addr1_q1,
-          restrict_ip_addr1_q2,
-          restrict_ip_addr1_q3,
-          restrict_ip_addr1_q4,
-          restrict_ip_addr2_q1,
-          restrict_ip_addr2_q2,
-          restrict_ip_addr2_q3,
-          restrict_ip_addr2_q4
-          )
-          VALUES(%d, %d, %d, %d, %d, %d, %d, %d, %d, %d)", 
-          $account->uid,
-          $edit['restrict_by_ip_type'],
-          $edit['addr1_q1'],
-          $edit['addr1_q2'],
-          $edit['addr1_q3'],
-          $edit['addr1_q4'],
-          $edit['addr2_q1'],
-          $edit['addr2_q2'],
-          $edit['addr2_q3'],
-          $edit['addr2_q4']
-        );
-      }
-      else if (($userexists) && (!$edit['restrict_by_ip_type'])) {
-        db_query("DELETE FROM {restrict_by_ip} WHERE {restrict_by_ip}.uid = %d", $account->uid);
-      }
-      else {
-        db_query("UPDATE {restrict_by_ip} SET 
-        restrict_by_ip_type=%d,
-          restrict_ip_addr1_q1=%d,
-          restrict_ip_addr1_q2=%d,
-          restrict_ip_addr1_q3=%d,
-          restrict_ip_addr1_q4=%d,
-          restrict_ip_addr2_q1=%d,
-          restrict_ip_addr2_q2=%d,
-          restrict_ip_addr2_q3=%d,
-          restrict_ip_addr2_q4=%d
-        WHERE uid=%d",
-          $edit['restrict_by_ip_type'],
-          $edit['addr1_q1'],
-          $edit['addr1_q2'],
-          $edit['addr1_q3'],
-          $edit['addr1_q4'],
-          $edit['addr2_q1'],
-          $edit['addr2_q2'],
-          $edit['addr2_q3'],
-          $edit['addr2_q4'],
-          $account->uid
-        );
-      }
-    }
-    break; /* end of update */
-    case 'validate':
-      if ($edit['restrict_by_ip_type']) {
-        // set up error_field variables
-        
-        $ip_fields1 = array('addr1_q1', 'addr1_q2', 'addr1_q3', 'addr1_q4');
-        $ip_fields2 = array('addr2_q1', 'addr2_q2', 'addr2_q3', 'addr2_q4');
-
-        // validate 0-255
-        $i=1;
-        foreach ($ip_fields1 as $quad) {
-          if ((!preg_match('/^\d*$/', $edit[$quad])) || ($edit[$quad] < 0) || ($edit[$quad] > 255)) {
-            form_set_error($quad, t('Illegal value for the Restricted IP Address, quad number: %quadnum . 
-              Each quad must be an integer between 0 and 255. ', array('%quadnum' => $i)));
-          }
-          $i++;
-        }
-        
-        // validate 0-255 for restrict_range element
-        if ($edit['restrict_by_ip_type'] == 2) {
-          $i=1;
-          foreach ($ip_fields2 as $quad) {
-            if ((!preg_match('/^\d*$/', $edit[$quad])) || ($edit[$quad] < 0) || ($edit[$quad] > 255) ) {
-              form_set_error($quad, t('Illegal value for the Restricted range, quad number: %quadnum . 
-                Each quad must be an integer between 0 and 255. ', array('%quadnum' => $i)));
-            }
-          $i++;
-          }
-          // limit the range to be in the last 2 quads
-          $i=1;
-          for ($i=0; $i<2; $i++) {
-            if ($edit[$ip_fields1[$i]] != $edit[$ip_fields2[$i]]) {
-              form_set_error($ip_fields1[$i], t('Illegal value for the Restricted range, quad number: %quadnum 
-                must match Restricted IP Address %quadnum. ', array('%quadnum' => ($i+1))));
-              form_set_error($ip_fields2[$i], t('Fields do not match'));
-            }
-          }
-        } /* end range validation */
-      }         
-    break;
-  } /* end of switch */
-  return array();
+function restrict_by_ip_settings() {
+  $form = array();
+  $form['restrict_by_ip_error_page'] = array(
+    '#type'           => 'textfield',
+    '#title'          => t('Login denied page'),
+    '#description'    => t("This the address of the page to which the user will be redirected if they are not allowed to login. If you don't set this the user will not know why they couldn't login"),
+    '#weight'         => -5,
+    '#default_value'  => variable_get('restrict_by_ip_error_page', ''),
+    '#required'       => TRUE,
+  );
+  return system_settings_form($form);
 }
 
 /**
- * Implementation of hook_nodeapi().
+ * Implementation of hook_user()
  */
-function restrict_by_ip_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
-  global $user ;
-  switch ($op) {
-    case 'load':
-      $mypath = explode("?", request_uri());
-        if ($mypath[1] == "restricted") {
-        // No, go to the error page.
-          drupal_goto('logout', 'destination='. variable_get('restrict_by_ip_error_page', ''));
-        }
-        else { /* okay  */}
-    break;  /* end of load */
+function restrict_by_ip_user($type, &$edit, &$account, $category = NULL) {
+  global $user;
+  switch ($type) {
+    case 'login':
+      return _restrict_by_ip_login($user);
+      break;
+    case 'form':
+    case 'register':
+      return _restrict_by_ip_form($account->uid); 
+      break;
+    case 'insert':
+    case 'update':
+      return _restrict_by_ip_update($account->uid, $edit);
+      break;
+    case 'submit':   //Drupal Bug: http://drupal.org/node/321787 - using for edit user will still update user data if error
+      return _restrict_by_ip_validate($edit, 1);
+      break;
+    case 'validate': //Drupal Bug: http://drupal.org/node/321787 - not fired when editing user only on new user
+      return _restrict_by_ip_validate($edit, 2);
+      break;
+    case 'delete':
+      return _restrict_by_ip_delete($account->uid);
+      break;
   }
 }
 
 /**
- * Menu callback: administer roles.
+ * Login function
+ * Checks the user's ip address on login
+ * If they are not restricted, or logging in from the appropriate address
+ * allow logon to continue. If not redirect to a designated page
  */
+function _restrict_by_ip_login(&$user) {
+  if ($user -> uid > 1) {
+    $usrdata = db_fetch_object(db_query('SELECT * FROM {restrict_by_ip} WHERE uid = %d', $user->uid));
+    $logonvalid = FALSE;
+    $ip2check = $_SERVER['REMOTE_ADDR'];
+    // If the user has restrict by ip address set
+    if ($usrdata->restrict_by_ip_type) {
+      $ipaddresses = explode(";", $usrdata->restrict_by_ip_address);
+      // Check each valid ip address in database against users ip address
+      // If one matches allow logon
+      foreach ($ipaddresses as $ipaddress) {
+        if (_restrict_by_ip_cidrcheck($ip2check, $ipaddress)) { 
+          $logonvalid = TRUE; 
+        }
+      }
+      // Restrict by ip address is set and no addresses match users ip address
+      if (!$logonvalid) {
+        // Log the error with the ip address
+        watchdog('user', t('Session closed for %name - Invalid IP. '.$ip2check, array('%name' => $user->name)));
+        // Destroy the current session
+        session_destroy();
+        module_invoke_all('user', 'logout', NULL, $user);
+        // Load the anonymous user
+        $user = drupal_anonymous_user();
+        // unset destination required to force them to the ip page during drupal_goto()
+        if (isset($_REQUEST['destination'])) {
+          unset($_REQUEST['destination']);
+        }
+        // Goto the page detailed in the site configuration - restrict by ip - settings page
+        drupal_goto(variable_get('restrict_by_ip_error_page', '0'));
+      }
+    }
+    return $logonvalid;
+  }
+  else{ 
+    return TRUE;
+  }
+}
+
 /**
- * function restrict_by_ip_role() {
- *    // Add field to the edit role form.
- *    $form['restrict_by_ip'] = array('#type' => 'fieldset',
- *      '#title' => t('Restrict by IP settings'),
- *      '#weight' => 5,
- *      '#collapsible' => TRUE,
- *      '#collapsed' => TRUE,
- *    );
- *    $form['restrict_by_ip']['restrict_by_ip'] = array('#type' => 'textfield',
- *      '#title' => t('Restricted IP Address'),
- *      '#default_value' => $role->restrict_by_ip,
- *      '#size' => 20,
- *      '#maxlength' => 15,
- *      '#description' => t('Enter the IP address that this role is allowed to login from (xxx.xxx.xxx.xxx).'),
- *      '#required' => FALSE,
- *    );
- *  return $form;
- * }
+ * Form and register function
+ * Insert the restrict by ip form into the user settings and new user forms for authorised users
  */
+function _restrict_by_ip_form($uid) {
+  if (user_access('administer site configuration') || user_access('administer restrict by ip')) {
+    $form = array();
+    drupal_add_css(drupal_get_path('module', 'restrict_by_ip').'/restrict_by_ip.css', 'module', 'screen', FALSE);
+    $usrdata_restrict_by_ip_type = "0";
+    $usrdata_restrict_by_ip_address = "";
+    // Grab the current restrict by ip data if it exists
+    $found=db_result(db_query('SELECT count(*) FROM {restrict_by_ip} WHERE uid = %d', $uid));
+    if($found) {
+      $usrdata = db_fetch_object(db_query('SELECT * FROM {restrict_by_ip} WHERE uid = %d', $uid));
+      $usrdata_restrict_by_ip_type = "1";
+      $usrdata_restrict_by_ip_address = $usrdata->restrict_by_ip_address;
+    }
+    $form['#multistep'] = TRUE;
+    $form['#redirect'] = FALSE;
+    $form['rip'] = array(
+      '#type'          => 'fieldset',
+      '#attributes'    => array('class' => 'restrict-by-ip'),
+      '#title'         => t('Restrict by IP settings'),
+      '#weight'        => 5,
+      '#collapsible'   => FALSE,
+    );
+    $form['rip']['restrict_by_ip_type'] = array(
+      '#type'          => 'radios',
+      '#title'         => t('Restrict By IP'),
+      '#default_value' => t($usrdata_restrict_by_ip_type),
+      '#options'       => array(t('No'), t('Yes')),
+    );
+    $form['rip']['restrict_by_ip_address'] = array(
+      '#type'          => 'textfield',
+      '#default_value' => t($usrdata_restrict_by_ip_address),
+      '#size'          => 128,
+      '#maxlength'     => 128,
+      '#description'   => t('Enter IP Address Ranges in CIDR Notation seperated with semi-colons, with no trailing semi-colon. E.G. 10.20.30.0/24;192.168.199.1/32;1.0.0.0/8<br />For more information on CIDR notation <a href="http://www.brassy.net/2007/mar/cidr_basic_subnetting" target="_blank">click here</a>.'),
+    );
+    return $form;
+  }
+  else {
+    return FALSE;
+  }
+}
+
+/**
+ * Update and insert function
+ * Update or create new restrict by ip database entry from the form data
+ */
+function _restrict_by_ip_update($uid, &$edit) {
+  if (user_access('administer site configuration') || user_access('administer restrict by ip')) {
+    $form = array();
+    if ($edit['restrict_by_ip_type']) {
+      if (db_result(db_query('SELECT uid FROM {restrict_by_ip} WHERE uid = %d', $uid))) {
+        db_query("UPDATE {restrict_by_ip} SET restrict_by_ip_type = %d, restrict_by_ip_address = '%s' WHERE uid = %d", intval($edit['restrict_by_ip_type']), $edit['restrict_by_ip_address'], $uid);
+      }
+      else {
+        db_query("INSERT INTO {restrict_by_ip} (uid, restrict_by_ip_type, restrict_by_ip_address) VALUES ( %d ,%d ,'%s')", $uid, intval($edit['restrict_by_ip_type']), $edit['restrict_by_ip_address']);
+      }
+    }
+    else {
+      db_query("DELETE FROM {restrict_by_ip} WHERE uid=%d", $uid);
+      // Attempting here to get the form to delete the ip address data if 'no' to restrict by ip address is selected
+      // Not working needs more investigation
+      if (isset($form['rip'])) {
+        $form['newform'] = array(
+          '#type'          => 'textfield',
+          '#default_value' => t(''),
+          '#size'          => 128,
+          '#maxlength'     => 128,
+          '#description'   => t('Enter IP Address Ranges in CIDR Notation seperated with semi-colons, with no trailing semi-colon. E.G. 10.20.30.0/24;192.168.199.1/32;1.0.0.0/8<br />For more information on CIDR notation <a href="http://www.brassy.net/2007/mar/cidr_basic_subnetting" target="_blank">click here</a>.'),
+        );
+        $form['rip']['restrict_by_ip_address'] = $form['newform'];
+        unset($form['newform']);
+      }
+    }
+    unset($edit['restrict_by_ip_type']);
+    unset($edit['restrict_by_ip_address']);
+    return TRUE;
+  }
+  else {
+    return FALSE;
+  } 
+}
+
+/**
+ * Validate function
+ * Validate the restrict by ip form data
+ */
+function _restrict_by_ip_validate(&$edit , $call) {
+  $ret = TRUE;
+  // Set up error messages for new user and edit user
+  $sms = "Retrict by IP Address setting not updated";
+  if ($call == 2) {
+    $sms = "User not added";
+  }
+  // Only validate is 'yes' is selected for restrict by ip
+  if ($edit['restrict_by_ip_type']) {
+    // Seperate the ip address by semi-colon delimiter
+    $ipaddresses = explode(";", $edit['restrict_by_ip_address']);
+    $j = 1;
+    // Check each ip address individually
+    foreach ($ipaddresses as $ipaddress) {
+      // Seperate in to address and cidr mask
+      $cidr = explode("/", $ipaddress);
+      // Check address and cidr mask entered
+      if (count($cidr) == 2) {
+        $ipaddr = explode(".", $cidr[0]);
+        // Check four quads entered
+        if (count($ipaddr) == 4) {
+          // Check each quad is valid - numeric and 0 < value < 255
+          for ($i=0; $i<4; $i++) {
+            if ((!is_numeric($ipaddr[$i])) || ($ipaddr[$i] < 0) || ($ipaddr[$i] > 255)) {
+              form_set_error('restrict_by_ip_address', t($sms.'. Illegal value for the an IP Address. Each IP Address must be valid. Check IP Address No. '.$j));
+              $ret = FALSE;
+            }
+          }
+          // Check cidr mask value - numeric and 0 < value < 33
+          if((!is_numeric($cidr[1])) || ($cidr[1]<1) || ($cidr[1]>32)) {
+            form_set_error('restrict_by_ip_address', t($sms.'. Illegal value for the CIDR value. Check CIDR No. '.$j));
+            $ret = FALSE;
+          }
+        }
+        else {
+          form_set_error('restrict_by_ip_address', t($sms.'. IP Address Incorrect Number of Quads. Check IP Address No. '.$j));
+          $ret = FALSE;
+        }
+      }
+      else {
+        form_set_error('restrict_by_ip_address', t($sms.'. IP Address in Incorrect Format. Check IP Address No. '.$j));
+        $ret = FALSE;
+      }
+      $j++;
+    }
+  }
+  if (!$ret) {
+    unset($edit['restrict_by_ip_type']);
+    unset($edit['restrict_by_ip_address']);
+  }
+  return $ret;  
+}
+
+/**
+ * User deleted function
+ * Remove the restrict by ip data from the database table
+ */
+function _restrict_by_ip_delete($uid) {
+  if ($uid > 1) {
+    return db_query("DELETE FROM {restrict_by_ip} WHERE uid=%d", $uid);
+  }
+  else {
+    return FALSE;
+  }
+}
+
+/**
+ * Check ip address against a network in cidr notation. E.g:
+ * _restrict_by_ip_cidrcheck('192.168.10.100','192.168.10.0/24'); returns 1
+ * _restrict_by_ip_cidrcheck('192.168.10.100','192.168.12.0/24'); returns 0
+ */ 
+function _restrict_by_ip_cidrcheck($iptocheck, $ipslashcidr) {
+  // Seperate ip address and cidr mask
+  $netmask = explode("/", $ipslashcidr);
+  // Get valid network as long 
+  $ip_net = ip2long($netmask[0]);
+  // Get valid network mask as long
+  $ip_mask = ~((1 << (32 - $netmask[1])) - 1);
+  // Get ip address to check as long
+  $ip_ip = ip2long($iptocheck);
+  // Mask ip address to check to get subnet
+  $ip_ip_net = $ip_ip & $ip_mask;
+  // Only returns 1 if the valid network 
+  //and the subnet of the ip address 
+  //to check are the same
+  return ($ip_ip_net == $ip_net);
+}
+?>
