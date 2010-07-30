@@ -1,11 +1,116 @@
 <?php
 // $Id$
-
 /**
  * @file
- * Allows the admin to select which ip addresses a user can login from for this site
+ * Allows the admin to select which ip addresses role or a user  can login from for this site
  * Some of the code below is taken from the cck_ipaddress_module
 */
+/**
+ * This just checks the database for any roles associated with that user
+ * that are in the restrict_by_ip table. From there it does a ip check 
+ * on each one of them to see if they are within the range of ip's allowed for that
+ * role.
+ */
+function restrict_by_ip_role_check(&$user){
+   //now do the resrict by ip check, remove roles from above array that should not be there
+   	//get all possible roles for the given user (other than annonmyous role and )
+   	$result = db_query('select rip.rid, rip.restrict_by_ip_address from {restrict_by_ip} rip left join {users_roles} ur ON ur.rid = rip.rid where ur.uid = %d', intval($user->uid) );
+	$ip2check = $_SERVER['REMOTE_ADDR'];
+  while ($role = db_fetch_object($result)) {
+	$ipaddresses = explode(";", $role->restrict_by_ip_address);
+	 foreach ($ipaddresses as $ipaddress) {
+        if (!_restrict_by_ip_cidrcheck($ip2check, $ipaddress)) { 
+          //unset a role if its not within the allowed ip range for this role
+          unset($user->roles[$role->rid]);
+        }	  
+	}
+  }
+}
+/**
+ * Hook to the admin_permissions submit function
+ */
+function restrict_by_ip_user_admin_perm_submit($form, &$form_state) {
+	$rid = $form_state['values']['rid'];
+	$role_restrict_by_ip_type = $form_state['values']['restrict_by_ip_type'];
+	 $restrict_by_ip_address = $form_state['values']['restrict_by_ip_address'];
+	 if($role_restrict_by_ip_type == "1"){
+	 		 if (db_result(db_query('SELECT rid FROM {restrict_by_ip} WHERE rid = %d', $rid))) {
+		  		db_query("UPDATE {restrict_by_ip} SET restrict_by_ip_type = %d, restrict_by_ip_address = '%s' WHERE rid = %d",intval($role_restrict_by_ip_type), t($restrict_by_ip_address), intval($rid));
+			}
+		 	else{
+	 			db_query("INSERT INTO {restrict_by_ip} (rid, restrict_by_ip_type, restrict_by_ip_address) VALUES ( %d ,%d, '%s' )", intval($rid), intval($role_restrict_by_ip_type), t($restrict_by_ip_address));
+		 	}
+	 }
+	 else{
+	 	db_query("DELETE FROM {restrict_by_ip} WHERE rid=%d", intval($rid));
+	 }
+}
+/**
+ * Hook for the permissions validate function. Checks to make sure the ip-address is valid.
+ */
+function restrict_by_ip_user_admin_perm_validate($form, &$form_state){
+    // Seperate the ip address by semi-colon delimiter
+     $ret = TRUE;
+     $sms = "Retrict by IP Address setting not updated to role";
+      if ($form_state['values']['rip']['restrict_by_ip_type']) {
+    $ret = _restrict_by_ip_validate_ip($form_state['values']['restrict_by_ip_address'],$sms);
+      }
+    return $ret;
+
+}
+/**
+ * Hook to the admin_permissions form
+ */
+function restrict_by_ip_form_user_admin_perm_alter(&$form, $form_state) {
+   $rid = arg(3);
+   //check to make sure its a single role we are editing
+   //and that it is not a annonymous user or simply an "authenticated user"
+   //we could change this later?
+   if(isset($rid) && intval($rid) > 2){
+   $roledata_restrict_by_ip_type="0";
+	 // Grab the current restrict by ip data if it exists
+    $found=db_result(db_query('SELECT count(*) FROM {restrict_by_ip} WHERE rid = %d', intval($rid)));
+    if($found) {
+      $roledata = db_fetch_object(db_query('SELECT * FROM {restrict_by_ip} WHERE rid = %d', intval($rid)));
+      $roledata_restrict_by_ip_type = "1";
+      $roledata_restrict_by_ip_address = $roledata->restrict_by_ip_address;
+    }
+    $form['rip'] = array(
+      '#type'          => 'fieldset',
+      '#attributes'    => array('class' => 'restrict-by-ip'),
+      '#title'         => t('Restrict by IP settings'),
+      '#collapsible'   => FALSE,
+    );
+    $form['rip']['rid'] = array(
+      '#type' => 'value',
+      '#value' => $rid,
+    );
+    $form['rip']['restrict_by_ip_type'] = array(
+      '#type'          => 'radios',
+      '#title'         => t('Restrict By IP'),
+      '#default_value' => $roledata_restrict_by_ip_type,
+      '#options'       => array(t('No'), t('Yes')),
+    );
+      $form['rip']['restrict_by_ip_address'] = array(
+      '#type'          => 'textfield',
+      '#default_value' => $roledata_restrict_by_ip_address,
+      '#size'          => 128,
+      '#maxlength'     => 128,
+      '#description'   => t('Enter IP Address Ranges in CIDR Notation seperated with semi-colons, with no trailing semi-colon. E.G. 10.20.30.0/24;192.168.199.1/32;1.0.0.0/8<br />For more information on CIDR notation <a href="http://www.brassy.net/2007/mar/cidr_basic_subnetting" target="_blank">click here</a>.'),
+    );
+    $form['#submit'] = array(
+  		'restrict_by_ip_user_admin_perm_submit',
+  		'user_admin_perm_submit');
+    $form['#validate'] = array(
+    	'restrict_by_ip_user_admin_perm_validate'
+    );
+    //unset the submit just so we can add the button again
+    //this way restrict ip does not show up at bottom of page
+    //I do not know any other way to do this?
+    unset($form['submit']);
+    $form['submit'] = array('#type' => 'submit', '#value' => 'Save Permissions');
+   }   
+}
 
 /**
  * Implementation of hook_help()
@@ -45,7 +150,8 @@ function restrict_by_ip_perm() {
 /**
  * Menu callback to configure module settings
  */
-function restrict_by_ip_settings() {
+function restrict_by_ip_settings() {  
+  //from here is default
   $form = array();
   $form['restrict_by_ip_error_page'] = array(
     '#type'           => 'textfield',
@@ -55,6 +161,7 @@ function restrict_by_ip_settings() {
     '#default_value'  => variable_get('restrict_by_ip_error_page', ''),
     '#required'       => TRUE,
   );
+  
   return system_settings_form($form);
 }
 
@@ -62,7 +169,7 @@ function restrict_by_ip_settings() {
  * Implementation of hook_user()
  */
 function restrict_by_ip_user($type, &$edit, &$account, $category = NULL) {
-  global $user;
+global $user;
   switch ($type) {
     case 'login':
       return _restrict_by_ip_login($user);
@@ -107,6 +214,7 @@ function _restrict_by_ip_login(&$user) {
         if (_restrict_by_ip_cidrcheck($ip2check, $ipaddress)) { 
           $logonvalid = TRUE; 
         }
+		//else if(_restrict_by_role($user->$roles){}
       }
       // Restrict by ip address is set and no addresses match users ip address
       if (!$logonvalid) {
@@ -137,6 +245,8 @@ function _restrict_by_ip_login(&$user) {
  * Insert the restrict by ip form into the user settings and new user forms for authorised users
  */
 function _restrict_by_ip_form($uid) {
+global $user;
+  //new code here
   if (user_access('administer site configuration') || user_access('administer restrict by ip')) {
     $form = array();
     drupal_add_css(drupal_get_path('module', 'restrict_by_ip').'/restrict_by_ip.css', 'module', 'screen', FALSE);
@@ -225,14 +335,41 @@ function _restrict_by_ip_update($uid, &$edit) {
 function _restrict_by_ip_validate(&$edit , $call) {
   $ret = TRUE;
   // Set up error messages for new user and edit user
-  $sms = "Retrict by IP Address setting not updated";
+  $sms = "Retrict by IP Address setting not updated to user";
   if ($call == 2) {
     $sms = "User not added";
   }
   // Only validate is 'yes' is selected for restrict by ip
   if ($edit['restrict_by_ip_type']) {
     // Seperate the ip address by semi-colon delimiter
-    $ipaddresses = explode(";", $edit['restrict_by_ip_address']);
+	$ret = _restrict_by_ip_validate_ip($edit['restrict_by_ip_address'], $sms);
+  }
+  if (!$ret) {
+    unset($edit['restrict_by_ip_type']);
+    unset($edit['restrict_by_ip_address']);
+  }
+  return $ret;  
+}
+
+/**
+ * User deleted function
+ * Remove the restrict by ip data from the database table
+ */
+function _restrict_by_ip_delete($uid) {
+  if ($uid > 1) {
+    return db_query("DELETE FROM {restrict_by_ip} WHERE uid=%d", $uid);
+  }
+  else {
+    return FALSE;
+  }
+}
+/**
+ * This function just makes sure the user input for the ip address
+ * section is valid. $sms is the error message if the ip validation fails
+ */
+function _restrict_by_ip_validate_ip( $ip_address, $sms){
+	$ret = TRUE;
+	  $ipaddresses = explode(";", $ip_address);
     $j = 1;
     // Check each ip address individually
     foreach ($ipaddresses as $ipaddress) {
@@ -267,25 +404,7 @@ function _restrict_by_ip_validate(&$edit , $call) {
       }
       $j++;
     }
-  }
-  if (!$ret) {
-    unset($edit['restrict_by_ip_type']);
-    unset($edit['restrict_by_ip_address']);
-  }
-  return $ret;  
-}
-
-/**
- * User deleted function
- * Remove the restrict by ip data from the database table
- */
-function _restrict_by_ip_delete($uid) {
-  if ($uid > 1) {
-    return db_query("DELETE FROM {restrict_by_ip} WHERE uid=%d", $uid);
-  }
-  else {
-    return FALSE;
-  }
+    return $ret;
 }
 
 /**

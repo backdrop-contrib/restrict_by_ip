@@ -31,7 +31,10 @@ function restrict_by_ip_schema() {
     'fields'                   => array(
       'uid'                    => array(
         'type'                 => 'int',
-        'not null'             => TRUE,
+        'unsigned'             => TRUE
+      ),
+      'rid'                    => array(
+        'type'                 => 'int',
         'unsigned'             => TRUE
       ),
       'restrict_by_ip_type'    => array(
@@ -44,7 +47,9 @@ function restrict_by_ip_schema() {
         'length'               => 128,
       ),
     ),
-    'primary key' => array('uid'),
+    //'primary key' => array('uid'),
+    'key' => array('uid'),
+    'key' => array('rid'),
   );
   return $schema;
 } 
