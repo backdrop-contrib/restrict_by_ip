@@ -1,5 +1,4 @@
 <?php
-// $Id$
 /**
  * @file
  * Allows the admin to select which ip addresses role or a user  can login from for this site
