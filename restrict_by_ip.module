@@ -12,10 +12,9 @@
 function restrict_by_ip_help($section) {
   switch ($section) {
     case 'admin/help#restrict_by_ip':
-      $output = '<p>The site administrator can limit a user to only be able to login from certain IP Addresses or ranges of IP Addresses using CIDR notation. Individual roles may also be limited to a those from specified IP addresses and rangers.</p>';
+      return '<p>The site administrator can limit a user to only be able to login from certain IP Addresses or ranges of IP Addresses using CIDR notation. Individual roles may also be limited to a those from specified IP addresses and rangers.</p>';
       break;
     }
-  return $output;
 }
 
 /**
@@ -575,5 +574,3 @@ function theme_restrict_by_ip_login_list() {
   }
   return theme('table', $header, $rows) . l('Add new IP restriction for user', 'admin/settings/restrict_by_ip/login/add', array('query' => array('destination' => 'admin/settings/restrict_by_ip/login')));
 }
-
-
