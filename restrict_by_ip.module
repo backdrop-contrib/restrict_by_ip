@@ -330,7 +330,7 @@ function restrict_by_ip_role_settings() {
 
   if (count($user_roles) === 0) {
     $form['no_roles'] = array(
-      '#value' => t('No roles configured. <a href="@add-role">Add a role</a>.', array('@add-role' => url('admin/user/roles'))),
+      '#markup' => t('No roles configured. <a href="@add-role">Add a role</a>.', array('@add-role' => url('admin/people/permissions/roles'))),
       '#prefix' => '<p>',
       '#suffix' => '</p>',
     );
