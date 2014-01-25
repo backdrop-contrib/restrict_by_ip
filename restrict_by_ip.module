@@ -28,7 +28,6 @@ function restrict_by_ip_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('restrict_by_ip_general_settings'),
     'access arguments' => array('administer restrict by ip'),
-    'type' => MENU_DEFAULT_LOCAL_TASK,
   );
   $items['admin/settings/restrict_by_ip/general'] = array(
     'title' => t('General settings'),
@@ -36,7 +35,7 @@ function restrict_by_ip_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('restrict_by_ip_general_settings'),
     'access arguments' => array('administer restrict by ip'),
-    'type' => MENU_LOCAL_TASK,
+    'type' => MENU_DEFAULT_LOCAL_TASK,
   );
   $items['admin/settings/restrict_by_ip/login'] = array(
     'title' => t('Restrict login by IP'),
@@ -52,6 +51,7 @@ function restrict_by_ip_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('restrict_by_ip_login_add_edit_user'),
     'access arguments' => array('administer restrict by ip'),
+    'type' => MENU_NORMAL_ITEM,
   );
   $items['admin/settings/restrict_by_ip/login/edit/%user'] = array(
     'title' => t('Edit existing login IP restriction'),
@@ -59,6 +59,7 @@ function restrict_by_ip_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('restrict_by_ip_login_add_edit_user', 5),
     'access arguments' => array('administer restrict by ip'),
+    'type' => MENU_NORMAL_ITEM,
   );
   $items['admin/settings/restrict_by_ip/role'] = array(
     'title' => t('Restrict role by IP'),
