@@ -232,6 +232,18 @@ function restrict_by_ip_login_settings() {
 }
 
 /**
+ * Validation function for global ip restriction settings
+ */
+function restrict_by_ip_login_settings_validate($form, &$form_state) {
+  if (strlen($form_state['values']['restrict_by_ip_login_range']) > 0) {
+    $ret = _restrict_by_ip_validate_ip($form_state['values']['restrict_by_ip_login_range']);
+    if ($ret['result'] == FALSE) {
+      form_set_error('restrict_by_ip_login_range', t(implode('<br />', $ret['messages'])));
+    }
+  }
+}
+
+/**
  * Form callback to add/edit user IP restriction.
  */
 function restrict_by_ip_login_add_edit_user($form_state, $account = NULL) {
@@ -326,19 +338,14 @@ function restrict_by_ip_role_settings() {
 }
 
 /**
- * Validation for settings form. Used to validate all entered IP addresses and ranges.
+ * Validation function for role ip restriction settings
  */
-function restrict_by_ip_settings_validate($form, &$form_state) {
-  if (is_array($form_state['values'])) {
-    foreach ($form_state['values'] as $element_id => $element) {
-      if (strstr($element_id, 'restrict_by_ip_role') || strstr($element_id, 'restrict_by_ip_login_range')) {
-        $range = $element;
-        if (strlen($range) > 0) {
-          $ret = _restrict_by_ip_validate_ip($range);
-          if ($ret['result'] == FALSE) {
-            form_set_error($element_id, t(implode('<br />', $ret['messages'])));
-          }
-        }
+function restrict_by_ip_role_settings_validate($form, &$form_state) {
+  foreach ($form_state['values'] as $key => $value) {
+    if (strpos($key, 'restrict_by_ip_role') !== FALSE && strlen($value) > 0) {
+      $ret = _restrict_by_ip_validate_ip($value);
+      if ($ret['result'] == FALSE) {
+        form_set_error($key, t(implode('<br />', $ret['messages'])));
       }
     }
   }
@@ -532,6 +539,15 @@ function _restrict_by_ip_validate_ip($ip_address) {
       $ret['messages'][] .= 'IP Address in Incorrect Format. Check IP Address ' . $ipaddress;
       $ret['result'] = FALSE;
     }
+
+    // Check the validity of the network address in the given CIDR block,
+    // by ensuring that the network address part is valid within the
+    // CIDR block itself. If it's not, the notation is invalid.
+    if (!_restrict_by_ip_cidrcheck($cidr[0], $ipaddress)) {
+      $ret['messages'][] .= 'The network address in the "'. $ipaddress . '" block is not valid.';
+      $ret['result'] = FALSE;
+    }
+
   }
   return $ret;
 }
