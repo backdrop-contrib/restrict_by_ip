@@ -1,0 +1,78 @@
+<?php
+
+/**
+ * @File
+ * Tests the restrict_by_ip module.
+ */
+
+class RestrictByIpUnitTestCase extends DrupalUnitTestCase {
+
+  public static function getInfo() {
+    return array(
+      'name' => 'Restrict By IP Unit Tests',
+      'description' => 'Test the restrict by ip module',
+      'group' => 'Restrict By IP',
+    );
+  }
+
+  public function setUp() {
+    drupal_load('module', 'restrict_by_ip');
+    parent::setUp();
+  }
+
+  public function testRestrictByIpUnitTestIpValidation() {
+    $result = _restrict_by_ip_validate_ip('string');
+    $this->assertFalse($result['result'], 'Not an IP address');
+
+    $result = _restrict_by_ip_validate_ip('127.0.0.1');
+    $this->assertFalse($result['result'], 'Missing CIDR mask');
+
+    $result = _restrict_by_ip_validate_ip('127.0.1');
+    $this->assertFalse($result['result'], 'Not enough octets');
+
+    $result = _restrict_by_ip_validate_ip('127.0.0.1/8');
+    $this->assertFalse($result['result'], 'Invalid /8');
+
+    $result = _restrict_by_ip_validate_ip('127.0.0.0/8');
+    $this->assertTrue($result['result'], 'Valid /8');
+
+    $result = _restrict_by_ip_validate_ip('127.0.0.1/16');
+    $this->assertFalse($result['result'], 'Invalid /16');
+
+    $result = _restrict_by_ip_validate_ip('127.1.0.0/16');
+    $this->assertTrue($result['result'], 'Valid /16');
+
+    $result = _restrict_by_ip_validate_ip('127.0.0.1/24');
+    $this->assertFalse($result['result'], 'Invalid /24');
+
+    $result = _restrict_by_ip_validate_ip('127.1.1.0/24');
+    $this->assertTrue($result['result'], 'Valid /24');
+
+    $result = _restrict_by_ip_validate_ip('127.0.0.1/32');
+    $this->assertTrue($result['result'], 'Valid /32');
+
+    $result = _restrict_by_ip_validate_ip('192.0.0.0/8;192.0.0.1/8');
+    $this->assertFalse($result['result'], 'Validate multiple addresses with errors');
+
+    $result = _restrict_by_ip_validate_ip('192.0.0.0/8;192.0.0.0/8');
+    $this->assertTrue($result['result'], 'Validate multiple addresses with no errors');
+
+    $result = _restrict_by_ip_validate_ip('not.an.ip.address/8');
+    $this->assertFalse($result['result'], 'Invalid octets');
+
+    $result = _restrict_by_ip_validate_ip('192.168.256.1/32');
+    $this->assertFalse($result['result'], 'Out of range otctet');
+
+    $result = _restrict_by_ip_validate_ip('192.168.-1.1/32');
+    $this->assertFalse($result['result'], 'Out of range otctet');
+
+    $result = _restrict_by_ip_validate_ip('127.0.0.1/octet');
+    $this->assertFalse($result['result'], 'Invalid CIDR mask');
+
+    $result = _restrict_by_ip_validate_ip('127.0.0.1/33');
+    $this->assertFalse($result['result'], 'Out of range CIDR mask');
+
+    $result = _restrict_by_ip_validate_ip('127.0.0.1/-1');
+    $this->assertFalse($result['result'], 'Out of range CIDR mask');
+  }
+}

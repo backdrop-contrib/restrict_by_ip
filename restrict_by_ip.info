@@ -3,3 +3,4 @@ package = Access control
 description = Enables limiting user login and role access to specific IP Addresses.
 core = 7.x
 configure = "admin/config/people/restrict_by_ip"
+files[] = restrict_by_ip.test
