@@ -5,6 +5,34 @@
  * Tests the restrict_by_ip module.
  */
 
+class RestrictByIpWebTestCase extends DrupalWebTestCase {
+  private $regularUser;
+
+  public static function getInfo() {
+    return array(
+      'name' => 'Restirct By IP Web Tests',
+      'description' => 'Test the restrict by ip module',
+      'group' => 'Restrict By IP',
+    );
+  }
+
+  public function setUp() {
+    parent::setUp('restrict_by_ip');
+    $this->regularUser = $this->drupalCreateUser();
+  }
+
+  public function testDisabledLoginsOutsideGlobalRange() {
+    variable_set('restrict_by_ip_login_range', '10.0.0.1/32');
+    $edit = array(
+      'name' => $this->regularUser->name,
+      'pass' => $this->regularUser->pass_raw
+    );
+    $this->drupalPost('user', $edit, t('Log in'));
+
+    $this->assertNoLink(t('Log out'), 0, t('User %name unsuccessfully logged in.', array('%name' => $this->regularUser->name)), t('User login'));
+  }
+}
+
 class RestrictByIpUnitTestCase extends DrupalUnitTestCase {
 
   public static function getInfo() {
