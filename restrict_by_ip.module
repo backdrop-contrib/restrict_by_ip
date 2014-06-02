@@ -147,7 +147,7 @@ function restrict_by_ip_theme($existing, $type, $theme, $path) {
 function restrict_by_ip_form_alter(&$form, &$form_state, $form_id) {
   if ($form_id == 'user_admin_role') {
     // Add a custom submit function to handle role deletions.
-    $form['#submit'][] =  'restrict_by_ip_admin_role_submit';
+    $form['actions']['delete']['#submit'][] = 'restrict_by_ip_admin_role_delete';
   }
   else if ($form_id == 'user_profile_form') {
     // Add restrict by ip form fields to user add/edit form
@@ -407,11 +407,9 @@ function restrict_by_ip_user_profile_submit($form, &$form_state) {
 /**
  * Custom submit function for user_admin_role form.
  */
-function restrict_by_ip_admin_role_submit($form, &$form_state) {
-  if ($form_state['values']['op'] == t('Delete role')) {
-    // Remove any IP restrictions from roles upon deletion of role.
-    variable_del('restrict_by_ip_role' . $form_state['values']['rid']);
-  }
+function restrict_by_ip_admin_role_delete($form, &$form_state) {
+  // Remove any IP restrictions from roles upon deletion of role.
+  variable_del('restrict_by_ip_role' . $form_state['values']['rid']);
 }
 
 /**
