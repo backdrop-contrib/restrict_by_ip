@@ -129,6 +129,62 @@ class RestrictByIpLoginTests extends DrupalWebTestCase {
   }
 }
 
+/**
+ * Test that role restrictions work.
+ * Assumes that local testing environment has IP address of 127.0.0.1.
+ */
+class RestrictByIpRoleTests extends DrupalWebTestCase {
+  private $regularUser;
+  private $role = array();
+
+  public static function getInfo() {
+    return array(
+      'name' => 'Restrict Role by IP Address',
+      'description' => 'Tests roles are restricted to certain IP address range(s).',
+      'group' => 'Restrict By IP',
+    );
+  }
+
+  public function setUp() {
+    // Enable modules needed for these tests.
+    parent::setUp('restrict_by_ip');
+
+    // Create a user that we'll use to test logins.
+    $this->regularUser = $this->drupalCreateUser();
+
+    // Create a role with administer permissions so we can load the user edit,
+    // page and test if the user has this role when logged in.
+    $rid = $this->drupalCreateRole(array('administer permissions'));
+    $roles = user_roles();
+    $this->role['id'] = $rid;
+    $this->role['name'] = $roles[$rid];
+
+    // Add created role to user.
+    $new_roles = $this->regularUser->roles + array($rid => $roles[$rid]);
+    user_save($this->regularUser, array('roles' => $new_roles));
+  }
+
+  public function testRoleAppliedNoRestrictions() {
+    $this->drupalLogin($this->regularUser);
+    $this->drupalGet('user/' . $this->regularUser->uid . '/edit');
+    $this->assertText($this->role['name']);
+  }
+
+  public function testRoleAppliedMatchIP() {
+    variable_set('restrict_by_ip_role' . $this->role['id'], '127.0.0.0/8');
+    $this->drupalLogin($this->regularUser);
+    $this->drupalGet('user/' . $this->regularUser->uid . '/edit');
+    $this->assertText($this->role['name']);
+  }
+
+  public function testRoleDeniedDifferIP() {
+    variable_set('restrict_by_ip_role' . $this->role['id'], '10.0.0.0/8');
+    $this->drupalLogin($this->regularUser);
+    $this->drupalGet('user/' . $this->regularUser->uid . '/edit');
+    $this->assertNoText($this->role['name']);
+  }
+}
+
 class RestrictByIpUnitTestCase extends DrupalUnitTestCase {
 
   public static function getInfo() {
