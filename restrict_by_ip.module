@@ -416,14 +416,11 @@ function restrict_by_ip_admin_role_delete($form, &$form_state) {
  * Perform an IP restriction check for all roles belonging to the given user.
  */
 function restrict_by_ip_role_check(&$user){
-  // Get all roles for the specified user
-  $result = db_query('select rid FROM {users_roles} where uid = :uid', array(':uid' => $user->uid));
   // Get header from configurable header setting
   $header = variable_get('restrict_by_ip_header', 'REMOTE_ADDR');
   $ip2check = $_SERVER[$header];
   // Check each role belonging to specified user
-  foreach ($result as $row) {
-    $rid = $row->rid;
+  foreach ($user->roles as $rid => $name) {
     $ranges = variable_get('restrict_by_ip_role' . $rid, '');
     // Only check IP if an IP restriction is set for this role
     if (strlen($ranges) > 0) {
