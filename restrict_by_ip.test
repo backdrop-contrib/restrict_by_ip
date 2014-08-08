@@ -171,14 +171,14 @@ class RestrictByIpRoleTests extends DrupalWebTestCase {
   }
 
   public function testRoleAppliedMatchIP() {
-    variable_set('restrict_by_ip_role' . $this->role['id'], '127.0.0.0/8');
+    variable_set('restrict_by_ip_role_' . $this->role['name'], '127.0.0.0/8');
     $this->drupalLogin($this->regularUser);
     $this->drupalGet('user/' . $this->regularUser->uid . '/edit');
     $this->assertText($this->role['name']);
   }
 
   public function testRoleDeniedDifferIP() {
-    variable_set('restrict_by_ip_role' . $this->role['id'], '10.0.0.0/8');
+    variable_set('restrict_by_ip_role_' . $this->role['name'], '10.0.0.0/8');
     $this->drupalLogin($this->regularUser);
     $this->drupalGet('user/' . $this->regularUser->uid . '/edit');
     $this->assertNoText($this->role['name']);

@@ -41,3 +41,19 @@ function restrict_by_ip_uninstall() {
   drupal_set_message(t('Restrict Logon By IP module uninstalled successfully.'));
 }
 
+/**
+ * Convert role restriction variables to use role names instead of role IDs.
+ */
+function restrict_by_ip_update_7300() {
+  $query = <<<EOL
+  select v.name, r.rid, r.name as role from {variable} v
+  left join {role} r on SUBSTR(v.name, 20) = r.rid
+  where v.name like 'restrict_by_ip_role%'
+EOL;
+
+  $rows = db_query($query);
+  foreach ($rows as $row) {
+    db_query("UPDATE {variable} SET name = :new WHERE name = :old", array(':new' =>
+      'restrict_by_ip_role_' . $row->role, ':old' => $row->name));
+  }
+}
