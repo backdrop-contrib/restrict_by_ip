@@ -471,8 +471,8 @@ function _restrict_by_ip_login(&$user) {
         // Load the anonymous user
         $user = drupal_anonymous_user();
         // unset destination required to force them to the ip page during drupal_goto()
-        if (isset($_REQUEST['destination'])) {
-          unset($_REQUEST['destination']);
+        if (isset($_GET['destination'])) {
+          unset($_GET['destination']);
         }
         // Goto the page detailed in the site configuration - restrict by ip - settings page
         drupal_goto(variable_get('restrict_by_ip_error_page', ''));
@@ -502,8 +502,8 @@ function _restrict_by_ip_login(&$user) {
         // Load the anonymous user
         $user = drupal_anonymous_user();
         // unset destination required to force them to the ip page during drupal_goto()
-        if (isset($_REQUEST['destination'])) {
-          unset($_REQUEST['destination']);
+        if (isset($_GET['destination'])) {
+          unset($_GET['destination']);
         }
         // Goto the page detailed in the site configuration - restrict by ip - settings page
         drupal_goto(variable_get('restrict_by_ip_error_page', ''));
