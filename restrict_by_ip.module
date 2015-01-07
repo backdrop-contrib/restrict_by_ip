@@ -119,7 +119,7 @@ function restrict_by_ip_user_login(&$edit, &$account) {
 function restrict_by_ip_user_insert(&$edit, $account, $category) {
   if (isset($edit['restrict_by_ip_address']) && strlen($edit['restrict_by_ip_address']) > 0) {
     // If an IP restriction is set, add it to database
-    db_query("INSERT INTO {restrict_by_ip} (uid, restrict_by_ip_address) VALUES (:uid, :ip)", array(':uid' => $edit['uid'], $edit['restrict_by_ip_address']));
+    db_query("INSERT INTO {restrict_by_ip} (uid, restrict_by_ip_address) VALUES (:uid, :ip)", array(':uid' => $edit['uid'], ':ip' => $edit['restrict_by_ip_address']));
   }
 }
 
