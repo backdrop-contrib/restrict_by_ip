@@ -220,6 +220,11 @@ function restrict_by_ip_general_settings() {
 function restrict_by_ip_login_settings() {
   drupal_set_title(t('Restrict login by IP'));
   $form = array();
+  $form['current_ip'] = array(
+    '#markup' => t('Your current IP address is %ipaddress. If this is wrong, make sure you have the correct header configured in general settings.', array('%ipaddress' => _restrict_by_ip_get_ip())),
+    '#prefix' => '<p>',
+    '#suffix' => '</p>',
+  );
   $form['restrict_by_ip_error_page'] = array(
     '#type' => 'textfield',
     '#title' => t('Login denied error page'),
