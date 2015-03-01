@@ -434,9 +434,7 @@ function restrict_by_ip_admin_role_save($form, &$form_state) {
  * Perform an IP restriction check for all roles belonging to the given user.
  */
 function restrict_by_ip_role_check(&$user){
-  // Get header from configurable header setting
-  $header = variable_get('restrict_by_ip_header', 'REMOTE_ADDR');
-  $ip2check = $_SERVER[$header];
+  $ip2check = _restrict_by_ip_get_ip();
   // Check each role belonging to specified user
   foreach ($user->roles as $rid => $name) {
     $form_name = _restrict_by_ip_hash_role_name($name);
@@ -465,9 +463,7 @@ function restrict_by_ip_role_check(&$user){
  */
 function _restrict_by_ip_login(&$user) {
   if ($user->uid != 0) {
-    // Get header from configurable header setting
-    $header = variable_get('restrict_by_ip_header', 'REMOTE_ADDR');
-    $ip2check = $_SERVER[$header];
+    $ip2check = _restrict_by_ip_get_ip();
 
     // Check for global login IP restrictions and validate against
     $global_data = variable_get('restrict_by_ip_login_range', '');
@@ -529,6 +525,20 @@ function _restrict_by_ip_login(&$user) {
       }
     }
   }
+}
+
+/**
+ * Returns the IP address of the user, taking into account header configuration.
+ */
+function _restrict_by_ip_get_ip() {
+  $header = variable_get('restrict_by_ip_header', 'REMOTE_ADDR');
+  $ip_address = '';
+
+  if (!empty($_SERVER[$header])) {
+    $ip_address = $_SERVER[$header];
+  }
+
+  return $ip_address;
 }
 
 /**
