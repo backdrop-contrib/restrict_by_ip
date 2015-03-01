@@ -57,3 +57,16 @@ EOL;
       'restrict_by_ip_role_' . $row->role, ':old' => $row->name));
   }
 }
+
+/**
+ * Convert role restriction variables to use hashed role names.
+ */
+function restrict_by_ip_update_7301() {
+  $query = <<<EOL
+  update {variable}
+  set name = CONCAT('restrict_by_ip_role_', MD5(SUBSTR(name, 21)))
+  where name like 'restrict_by_ip_role%'
+EOL;
+
+  db_query($query);
+}
