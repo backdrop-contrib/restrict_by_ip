@@ -273,6 +273,108 @@ class RestrictByIpRedirectTests extends DrupalWebTestCase {
   }
 }
 
+/**
+ * Test admin interfaces.
+ * Assumes that local testing environment has IP address of 127.0.0.1.
+ */
+class RestrictByIpUITests extends DrupalWebTestCase {
+  private $adminUser;
+
+  public static function getInfo() {
+    return array(
+      'name' => 'UI',
+      'description' => 'Tests admin UIs.',
+      'group' => 'Restrict By IP',
+    );
+  }
+
+  public function setUp() {
+    // Enable modules needed for these tests.
+    parent::setUp('restrict_by_ip');
+
+    // Create admin user that can configure restrict_by_ip module and users.
+    $this->adminUser = $this->drupalCreateUser(array('administer restrict by ip', 'administer users'));
+    $this->drupalLogin($this->adminUser);
+  }
+
+  // Test validation function on user add form.
+  public function testUserRegisterValidation() {
+    $form = array();
+    $form['name'] = $this->randomName(8);
+    $form['mail'] = $this->randomName(5) . '@domain.notatld';
+    $pass = $this->randomName(5);
+    $form['pass[pass1]'] = $pass;
+    $form['pass[pass2]'] = $pass;
+    $form['restrict_by_ip_address'] = 'not_an_ip';
+    $this->drupalPost('admin/people/create', $form, t('Create new account'));
+    $this->assertText('IP Address in Incorrect Format.');
+  }
+
+  // Test adding ip restriction while adding a user.
+  public function testUserRegisterSubmit() {
+    $form = array();
+    $form['name'] = $this->randomName(8);
+    $form['mail'] = $this->randomName(5) . '@domain.notatld';
+    $pass = $this->randomName(5);
+    $form['pass[pass1]'] = $pass;
+    $form['pass[pass2]'] = $pass;
+    $form['restrict_by_ip_address'] = '127.0.0.1/32';
+    $this->drupalPost('admin/people/create', $form, t('Create new account'));
+    $user = user_load_by_name($form['name']);
+    $this->assertText(t('Created a new user account for @name. No e-mail has been sent.', array(
+      '@name' => $form['name']
+    )));
+    $this->drupalGet('user/' . $user->uid . '/edit');
+    $this->assertFieldByName('restrict_by_ip_address', $form['restrict_by_ip_address']);
+  }
+
+  // Test validation function on user edit form.
+  public function testUserEditValidation() {
+    $user = $this->drupalCreateUser();
+    $this->drupalGet('user/' . $user->uid . '/edit');
+    $this->assertFieldByName('restrict_by_ip_address', '');
+
+    $form = array();
+    $form['restrict_by_ip_address'] = 'not_an_ip';
+    $this->drupalPost('user/' . $user->uid . '/edit', $form, t('Save'));
+    $this->assertText('IP Address in Incorrect Format.');
+    $this->assertNoText('The changes have been saved.');
+  }
+
+  // Test changing ip restrictions on user edit form.
+  public function testUserEditSubmit() {
+    $user = $this->drupalCreateUser();
+    $this->drupalGet('user/' . $user->uid . '/edit');
+    $this->assertFieldByName('restrict_by_ip_address', '');
+
+    $form = array();
+    $form['restrict_by_ip_address'] = '127.0.0.1/32';
+    $this->drupalPost('user/' . $user->uid . '/edit', $form, t('Save'));
+    $this->assertText('The changes have been saved.');
+    $this->assertFieldByName('restrict_by_ip_address', $form['restrict_by_ip_address']);
+  }
+
+  // Test validation function on admin/config/people/restrict_by_ip/login/edit/%.
+  public function testAdminUserValidation() {
+    $user = $this->drupalCreateUser();
+    $form = array();
+    $form['restriction'] = 'not_an_ip';
+    $this->drupalPost('admin/config/people/restrict_by_ip/login/edit/' . $user->uid, $form, t('Save restriction'));
+    $this->assertText('IP Address in Incorrect Format.');
+  }
+
+  // Test changing ip restrictions on admin/config/people/restrict_by_ip/login/edit/%.
+  public function testAdminUserSubmit() {
+    $user = $this->drupalCreateUser();
+    $form = array();
+    $form['restriction'] = '127.0.0.1/32';
+    $this->drupalPost('admin/config/people/restrict_by_ip/login/edit/' . $user->uid, $form, t('Save restriction'));
+    $this->assertText('User restriction has been saved.');
+    $this->drupalGet('admin/config/people/restrict_by_ip/login/edit/' . $user->uid);
+    $this->assertFieldByName('restriction', $form['restriction']);
+  }
+}
+
 class RestrictByIpUnitTestCase extends DrupalUnitTestCase {
 
   public static function getInfo() {
