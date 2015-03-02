@@ -373,6 +373,63 @@ class RestrictByIpUITests extends DrupalWebTestCase {
     $this->drupalGet('admin/config/people/restrict_by_ip/login/edit/' . $user->uid);
     $this->assertFieldByName('restriction', $form['restriction']);
   }
+
+  // Test the restrict by ip general settings form.
+  public function testGeneralSettings() {
+    $form = array();
+    $form['restrict_by_ip_header'] = $this->randomName(5);
+    $this->drupalPost('admin/config/people/restrict_by_ip', $form, t('Save configuration'));
+    $this->assertText('The configuration options have been saved.');
+    $this->assertFieldByName('restrict_by_ip_header', $form['restrict_by_ip_header']);
+  }
+
+  // Test validation on restrict login by ip settings form.
+  public function testLoginByIpSettingsValidation() {
+    $form = array();
+    $form['restrict_by_ip_login_range'] = 'not_an_ip';
+    $this->drupalPost('admin/config/people/restrict_by_ip/login', $form, t('Save configuration'));
+    $this->assertText('IP Address in Incorrect Format.');
+  }
+
+  // Test restrict login by ip settings form.
+  public function testLoginByIpSettingsSubmit() {
+    $form = array();
+    $form['restrict_by_ip_error_page'] = $this->randomName(5);
+    $form['restrict_by_ip_login_range'] = '127.0.0.1/32';
+    $this->drupalPost('admin/config/people/restrict_by_ip/login', $form, t('Save configuration'));
+    $this->assertText('The configuration options have been saved.');
+    $this->assertFieldByName('restrict_by_ip_error_page', $form['restrict_by_ip_error_page']);
+    $this->assertFieldByName('restrict_by_ip_login_range', $form['restrict_by_ip_login_range']);
+  }
+
+  // Test validation on restrict role by ip settings form.
+  public function testRoleByIpSettingsValidation() {
+    // Create a role to test.
+    $rid = $this->drupalCreateRole(array('access content'));
+    $roles = user_roles();
+    $rname = $roles[$rid];
+    $rname_hashed = _restrict_by_ip_hash_role_name($rname);
+
+    $form = array();
+    $form['restrict_by_ip_role_' . $rname_hashed] = 'not_an_ip';
+    $this->drupalPost('admin/config/people/restrict_by_ip/role', $form, t('Save configuration'));
+    $this->assertText('IP Address in Incorrect Format.');
+  }
+
+  // Test restrict role by ip settings form.
+  public function testRoleByIpSettingsSubmit() {
+    // Create a role to test.
+    $rid = $this->drupalCreateRole(array('access content'));
+    $roles = user_roles();
+    $rname = $roles[$rid];
+    $rname_hashed = _restrict_by_ip_hash_role_name($rname);
+
+    $form = array();
+    $form['restrict_by_ip_role_' . $rname_hashed] = '127.0.0.1/32';
+    $this->drupalPost('admin/config/people/restrict_by_ip/role', $form, t('Save configuration'));
+    $this->assertText('The configuration options have been saved.');
+    $this->assertFieldByName('restrict_by_ip_role_' . $rname_hashed, $form['restrict_by_ip_role_' . $rname_hashed]);
+  }
 }
 
 class RestrictByIpUnitTestCase extends DrupalUnitTestCase {
