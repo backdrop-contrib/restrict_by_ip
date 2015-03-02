@@ -151,35 +151,25 @@ function restrict_by_ip_form_alter(&$form, &$form_state, $form_id) {
     // Add a custom submit function to handle role name changes.
     $form['#submit'][] = 'restrict_by_ip_admin_role_save';
   }
-  else if ($form_id == 'user_profile_form') {
+  else if ($form_id == 'user_profile_form' || $form_id == 'user_register_form') {
     // Add restrict by ip form fields to user add/edit form
-    global $user;
     if (user_access('administer site configuration') || user_access('administer restrict by ip')) {
-      $uid = $form['#user']->uid;
+      $address_entry = '';
 
-      $usrdata_restrict_by_ip_address = "";
-      // Grab the current restrict by ip data if it exists
-      $address_entry = db_query('SELECT restrict_by_ip_address FROM {restrict_by_ip} WHERE uid = :uid', array(':uid' =>$uid))->fetchField();
-      $form['rip'] = array(
-        '#type'          => 'fieldset',
-        '#attributes'    => array('class' => array('restrict-by-ip')),
-        '#title'         => t('Restrict by IP settings'),
-        '#weight'        => 5,
-        '#collapsible'   => FALSE,
-      );
-      $form['rip']['restrict_by_ip_address'] = array(
-        '#type'          => 'textfield',
-        '#default_value' => $address_entry ? $address_entry : '',
-        '#maxlength'     => 256,
-        '#description'   => t('Enter IP Address Ranges in CIDR Notation seperated with semi-colons, with no trailing semi-colon. E.G. 10.20.30.0/24;192.168.199.1/32;1.0.0.0/8<br />For more information on CIDR notation <a href="http://www.brassy.net/2007/mar/cidr_basic_subnetting" target="_blank">click here</a>.<br /><strong>Leave field empty to disable IP restrictions for this user.</strong>'),
-      );
-      $form['#validate'][] = 'restrict_by_ip_user_profile_validate';
-      $form['#submit'][] = 'restrict_by_ip_user_profile_submit';
-    }
-  }
-  else if ($form_id == 'user_register_form') {
-    global $user;
-    if (user_access('administer site configuration') || user_access('administer restrict by ip')) {
+      if ($form_id == 'user_profile_form') {
+        $uid = $form['#user']->uid;
+        $form['#validate'][] = 'restrict_by_ip_user_profile_validate';
+        $form['#submit'][] = 'restrict_by_ip_user_profile_submit';
+
+        $usrdata_restrict_by_ip_address = "";
+        // Grab the current restrict by ip data if it exists
+        $address_entry = db_query('SELECT restrict_by_ip_address FROM {restrict_by_ip} WHERE uid = :uid', array(
+          ':uid' => $uid
+        ))->fetchField();
+      }
+      else {
+        $form['#validate'][] = 'restrict_by_ip_user_profile_validate';
+      }
 
       $form['rip'] = array(
         '#type'          => 'fieldset',
@@ -190,11 +180,10 @@ function restrict_by_ip_form_alter(&$form, &$form_state, $form_id) {
       );
       $form['rip']['restrict_by_ip_address'] = array(
         '#type'          => 'textfield',
-        '#default_value' => '',
+        '#default_value' => $address_entry,
         '#maxlength'     => 256,
         '#description'   => t('Enter IP Address Ranges in CIDR Notation seperated with semi-colons, with no trailing semi-colon. E.G. 10.20.30.0/24;192.168.199.1/32;1.0.0.0/8<br />For more information on CIDR notation <a href="http://www.brassy.net/2007/mar/cidr_basic_subnetting" target="_blank">click here</a>.<br /><strong>Leave field empty to disable IP restrictions for this user.</strong>'),
       );
-      $form['#validate'][] = 'restrict_by_ip_user_register_validate';
     }
   }
 }
@@ -372,18 +361,6 @@ function restrict_by_ip_role_settings_validate($form, &$form_state) {
       if ($ret['result'] == FALSE) {
         form_set_error($key, t(implode('<br />', $ret['messages'])));
       }
-    }
-  }
-}
-
-/**
- * Custom validation function for the user_register form page.
- */
-function restrict_by_ip_user_register_validate($form, &$form_state) {
-  if (strlen($form_state['values']['restrict_by_ip_address']) > 0) {
-    $ret = _restrict_by_ip_validate_ip($form_state['values']['restrict_by_ip_address']);
-    if ($ret['result'] == FALSE) {
-      form_set_error('restrict_by_ip_address', t(implode('<br />', $ret['messages'])));
     }
   }
 }
