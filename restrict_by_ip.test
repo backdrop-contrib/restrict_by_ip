@@ -199,6 +199,30 @@ class RestrictByIpRoleTests extends DrupalWebTestCase {
     $this->drupalGet('user/' . $this->regularUser->uid . '/edit');
     $this->assertNoText($this->role['name']);
   }
+
+  // Test ip restrictions
+  public function testUIRoleRenamed() {
+    variable_set('restrict_by_ip_role_' . _restrict_by_ip_hash_role_name($this->role['name']), '127.0.0.0/8');
+    $this->drupalLogin($this->regularUser);
+    $form = array();
+    $form['name'] = 'a new role name';
+    $this->drupalPost('admin/people/permissions/roles/edit/' . $this->role['id'], $form, t('Save role'));
+    $this->assertText('The role has been renamed.');
+    $ip = variable_get('restrict_by_ip_role_' . _restrict_by_ip_hash_role_name('a new role name'), '');
+    $this->assertEqual($ip, '127.0.0.0/8', 'IP restriction updated');
+  }
+
+  public function testUIRoleDeleted() {
+    variable_set('restrict_by_ip_role_' . _restrict_by_ip_hash_role_name($this->role['name']), '127.0.0.0/8');
+    $this->drupalLogin($this->regularUser);
+    $form = array();
+    $this->drupalPost('admin/people/permissions/roles/edit/' . $this->role['id'], $form, t('Delete role'));
+    $this->drupalPost(NULL, $form, t('Delete'));
+    $this->assertText('The role has been deleted.');
+    // If we get the default, we know the variable is deleted.
+    $ip = variable_get('restrict_by_ip_role_' . _restrict_by_ip_hash_role_name($this->role['name']), 'ip default');
+    $this->assertEqual($ip, 'ip default', 'IP restriction deleted');
+  }
 }
 
 /**
