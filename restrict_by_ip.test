@@ -117,6 +117,22 @@ class RestrictByIpLoginTests extends DrupalWebTestCase {
     $this->drupalLogin($this->regularUser);
   }
 
+  // Test that deleting a user also removes any IP restrictions.
+  public function testUserDelete() {
+    db_query("INSERT INTO {restrict_by_ip} (uid, restrict_by_ip_address) VALUES (:uid, :ip)", array(
+      ':uid' => $this->regularUser->uid,
+      ':ip' => '10.0.0.0/8',
+    ));
+
+    user_delete($this->regularUser->uid);
+
+    $result = db_query("SELECT restrict_by_ip_address FROM {restrict_by_ip} WHERE uid = :uid", array(
+      ':uid' => $this->regularUser->uid,
+    ));
+
+    $this->assertEqual($result->rowCount(), 0);
+  }
+
   // Assert user can't login.
   private function assertNoLogin() {
     $edit = array(
