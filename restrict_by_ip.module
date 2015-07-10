@@ -145,13 +145,7 @@ function restrict_by_ip_theme($existing, $type, $theme, $path) {
  * Implmentation of hook_form_alter().
  */
 function restrict_by_ip_form_alter(&$form, &$form_state, $form_id) {
-  if ($form_id == 'user_admin_role') {
-    // Add a custom submit function to handle role deletions.
-    $form['actions']['delete']['#submit'][] = 'restrict_by_ip_admin_role_delete';
-    // Add a custom submit function to handle role name changes.
-    $form['#submit'][] = 'restrict_by_ip_admin_role_save';
-  }
-  else if ($form_id == 'user_profile_form' || $form_id == 'user_register_form') {
+  if ($form_id == 'user_profile_form' || $form_id == 'user_register_form') {
     // Add restrict by ip form fields to user add/edit form
     if (user_access('administer site configuration') || user_access('administer restrict by ip')) {
       $address_entry = '';
@@ -390,20 +384,42 @@ function restrict_by_ip_user_profile_submit($form, &$form_state) {
 }
 
 /**
- * Custom submit function for user_admin_role form.
+ * Delete role IP restirctions when a role is deleted.
+ * Implements hook_user_role_delete().
  */
-function restrict_by_ip_admin_role_delete($form, &$form_state) {
-  // Remove any IP restrictions from roles upon deletion of role.
-  variable_del('restrict_by_ip_role_' . _restrict_by_ip_hash_role_name($form_state['values']['name']));
+function restrict_by_ip_user_role_delete($role) {
+  variable_del('restrict_by_ip_role_' . _restrict_by_ip_hash_role_name($role->name));
+}
+
+/**
+ * Statically save role name before it's updated.
+ * Implements hook_user_role_presave().
+ * @see restrict_by_ip_user_role_update().
+ */
+function restrict_by_ip_user_role_presave($role) {
+  if (!empty($role->rid) && $role->name) {
+    // Load the role as it exists in the database to get what the original
+    // role name was.
+    $old_role = user_role_load($role->rid);
+
+    // Save the old name statically so that restrict_by_ip_user_role_update()
+    // can know what it is.
+    $role_old_names = &drupal_static(__FUNCTION__);
+    $role_old_names[$old_role->rid] = $old_role->name;
+  }
 }
 
 /**
  * Update role IP restrictions when a role name changes.
- * @see restrict_by_ip_form_alter().
+ * Implements hook_user_role_update().
+ * @see restrict_by_ip_user_role_presave().
  */
-function restrict_by_ip_admin_role_save($form, &$form_state) {
-  $old_name = _restrict_by_ip_hash_role_name($form['name']['#default_value']);
-  $new_name = _restrict_by_ip_hash_role_name($form_state['values']['name']);
+function restrict_by_ip_user_role_update($role) {
+  // Get any old role names saved by restrict_by_ip_user_role_presave().
+  $role_old_names = &drupal_static('restrict_by_ip_user_role_presave');
+
+  $old_name = _restrict_by_ip_hash_role_name($role_old_names[$role->rid]);
+  $new_name = _restrict_by_ip_hash_role_name($role->name);
 
   if ($old_name !== $new_name) {
     $old_restrictions = variable_get('restrict_by_ip_role_' . $old_name, '');
