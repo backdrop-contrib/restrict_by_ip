@@ -538,6 +538,12 @@ function _restrict_by_ip_get_ip() {
     $ip_address = $_SERVER[$header];
   }
 
+  /**
+   * Warning: Using this hook has security implications. Providing a wrong IP
+   * address could allow users to bypass IP restrictions.
+   */
+  drupal_alter('restrict_by_ip_get_ip', $ip_address);
+
   return $ip_address;
 }
 
