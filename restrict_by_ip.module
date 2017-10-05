@@ -176,7 +176,7 @@ function restrict_by_ip_form_alter(&$form, &$form_state, $form_id) {
         '#type'          => 'textfield',
         '#default_value' => $address_entry,
         '#maxlength'     => NULL,
-        '#description'   => t('Enter IP Address Ranges in CIDR Notation seperated with semi-colons, with no trailing semi-colon. E.G. 10.20.30.0/24;192.168.199.1/32;1.0.0.0/8<br />For more information on CIDR notation <a href="http://www.brassy.net/2007/mar/cidr_basic_subnetting" target="_blank">click here</a>.<br /><strong>Leave field empty to disable IP restrictions for this user.</strong>'),
+        '#description'   => t('Enter IP Address Ranges in CIDR Notation separated with semi-colons, with no trailing semi-colon. E.G. 10.20.30.0/24;192.168.199.1/32;1.0.0.0/8<br />For more information on CIDR notation <a href="http://www.brassy.net/2007/mar/cidr_basic_subnetting" target="_blank">click here</a>.<br /><strong>Leave field empty to disable IP restrictions for this user.</strong>'),
       );
     }
   }
@@ -218,7 +218,7 @@ function restrict_by_ip_login_settings() {
     '#type' => 'textfield',
     '#title' => t('Restrict global login to allowed IP range'),
     '#maxlength' => NULL,
-    '#description' => t('To restrict login for ALL users, enter global IP Address Ranges in CIDR Notation seperated with semi-colons, with no trailing semi-colon. E.G. 10.20.30.0/24;192.168.199.1/32;1.0.0.0/8<br />For more information on CIDR notation click <a href="http://www.brassy.net/2007/mar/cidr_basic_subnetting">here</a>.<br />Leave field blank to disable IP restrictions for user login.'),
+    '#description' => t('To restrict login for ALL users, enter global IP Address Ranges in CIDR Notation separated with semi-colons, with no trailing semi-colon. E.G. 10.20.30.0/24;192.168.199.1/32;1.0.0.0/8<br />For more information on CIDR notation click <a href="http://www.brassy.net/2007/mar/cidr_basic_subnetting">here</a>.<br />Leave field blank to disable IP restrictions for user login.'),
     '#default_value' => variable_get('restrict_by_ip_login_range', ''),
   );
   $form['restrict_login_by_ip_list'] = array(
@@ -259,7 +259,7 @@ function restrict_by_ip_login_add_edit_user($form, &$form_state, $account = NULL
   $form['restriction'] = array(
     '#type' => 'textfield',
     '#title' => t('Allowed IP range'),
-    '#description' => t('Enter IP Address Ranges in CIDR Notation seperated with semi-colons, with no trailing semi-colon. E.G. 10.20.30.0/24;192.168.199.1/32;1.0.0.0/8<br />For more information on CIDR notation click <a href="http://www.brassy.net/2007/mar/cidr_basic_subnetting">here</a>.'),
+    '#description' => t('Enter IP Address Ranges in CIDR Notation separated with semi-colons, with no trailing semi-colon. E.G. 10.20.30.0/24;192.168.199.1/32;1.0.0.0/8<br />For more information on CIDR notation click <a href="http://www.brassy.net/2007/mar/cidr_basic_subnetting">here</a>.'),
     '#maxlength' => NULL,
   );
   $form['submit'] = array(
@@ -339,7 +339,7 @@ function restrict_by_ip_role_settings() {
       '#type' => 'textfield',
       '#title' => t('Allowed IP range'),
       '#maxlength' => NULL,
-      '#description' => t('Enter IP Address Ranges in CIDR Notation seperated with semi-colons, with no trailing semi-colon. E.G. 10.20.30.0/24;192.168.199.1/32;1.0.0.0/8<br />For more information on CIDR notation click <a href="http://www.brassy.net/2007/mar/cidr_basic_subnetting">here</a>.<br />Leave field blank to disable IP restrictions for ' . $name),
+      '#description' => t('Enter IP Address Ranges in CIDR Notation separated with semi-colons, with no trailing semi-colon. E.G. 10.20.30.0/24;192.168.199.1/32;1.0.0.0/8<br />For more information on CIDR notation click <a href="http://www.brassy.net/2007/mar/cidr_basic_subnetting">here</a>.<br />Leave field blank to disable IP restrictions for ' . $name),
       '#default_value' => variable_get('restrict_by_ip_role_' . $form_name, ''),
     );
   }
@@ -557,7 +557,7 @@ function _restrict_by_ip_validate_ip($ip_address) {
 
   // Check each ip address individually
   foreach ($ipaddresses as $ipaddress) {
-    // Seperate in to address and cidr mask
+    // Separate in to address and cidr mask
     $cidr = explode("/", $ipaddress);
     // Check address and cidr mask entered
     if (count($cidr) == 2) {
@@ -605,7 +605,7 @@ function _restrict_by_ip_validate_ip($ip_address) {
  * _restrict_by_ip_cidrcheck('192.168.10.100','192.168.12.0/24'); returns 0
  */
 function _restrict_by_ip_cidrcheck($iptocheck, $ipslashcidr) {
-  // Seperate ip address and cidr mask
+  // Separate ip address and cidr mask
   $netmask = explode("/", $ipslashcidr);
   // Get valid network as long
   $ip_net = ip2long($netmask[0]);
