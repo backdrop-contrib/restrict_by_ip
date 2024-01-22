@@ -19,6 +19,6 @@
  *   IP address of user.
  */
 function hook_restrict_by_ip_get_ip_alter(&$ip_address) {
-  // Use drupal core ip_address() instead.
+  // Use Backdrop core ip_address() instead.
   $ip_address = ip_address();
 }

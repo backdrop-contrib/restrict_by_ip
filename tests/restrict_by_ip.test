@@ -9,36 +9,46 @@
  * Test that IP restrictions work.
  * Assumes that local testing environment has IP address of 127.0.0.1.
  */
-class RestrictByIpLoginTests extends DrupalWebTestCase {
-  private $regularUser;
+class RestrictByIpLoginTests extends BackdropWebTestCase {
+  /**
+   * @var User
+   */
+  protected $regularUser;
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Restrict Login by IP Address',
-      'description' => 'Tests logins are restricted to certain IP address range(s).',
-      'group' => 'Restrict By IP',
-    );
-  }
+  /**
+   * @var User
+   */
+  protected $adminUser;
+
+  /**
+   * @var string
+   */
+  protected $cidr;
 
   public function setUp() {
     // Enable modules needed for these tests.
     parent::setUp('restrict_by_ip');
 
     // Create a user that we'll use to test logins.
-    $this->regularUser = $this->drupalCreateUser();
+    $this->regularUser = $this->backdropCreateUser();
+
+    // Admin user
+    $this->adminUser = $this->backdropCreateUser(array('administer permissions', 'administer users', 'assign roles'));
+
+    $this->cidr = ip_address() . '/32';
   }
 
   // User can login when users IP matches global range.
   public function testIpMatchGlobal() {
     // Add global IP range.
-    variable_set('restrict_by_ip_login_range', '127.0.0.0/8');
-    $this->drupalLogin($this->regularUser);
+    config_set('restrict_by_ip.settings', 'login_range', $this->cidr);
+    $this->backdropLogin($this->regularUser);
   }
 
   // User disallowed login outside global range.
   public function testIpDifferGlobal() {
     // Add global IP range.
-    variable_set('restrict_by_ip_login_range', '10.0.0.0/8');
+    config_set('restrict_by_ip.settings', 'login_range', '10.0.0.0/8');
     $this->assertNoLogin();
   }
 
@@ -47,9 +57,9 @@ class RestrictByIpLoginTests extends DrupalWebTestCase {
     // Add in range user IP.
     db_query("INSERT INTO {restrict_by_ip} (uid, restrict_by_ip_address) VALUES (:uid, :ip)", array(
       ':uid' => $this->regularUser->uid,
-      ':ip' => '127.0.0.0/8',
+      ':ip' => $this->cidr,
     ));
-    $this->drupalLogin($this->regularUser);
+    $this->backdropLogin($this->regularUser);
   }
 
   // User disallowed login outside user range.
@@ -67,11 +77,11 @@ class RestrictByIpLoginTests extends DrupalWebTestCase {
   // users range.
   public function testIpDifferGlobalMatchUser() {
     // Add out of range global IP.
-    variable_set('restrict_by_ip_login_range', '10.0.0.0/8');
+    config_set('restrict_by_ip.settings', 'login_range', '10.0.0.0/8');
     // Add in range user IP.
     db_query("INSERT INTO {restrict_by_ip} (uid, restrict_by_ip_address) VALUES (:uid, :ip)", array(
       ':uid' => $this->regularUser->uid,
-      ':ip' => '127.0.0.0/8',
+      ':ip' => $this->cidr,
     ));
 
     $this->assertNoLogin();
@@ -81,7 +91,7 @@ class RestrictByIpLoginTests extends DrupalWebTestCase {
   // global range.
   public function testIpMatchGlobalDifferUser() {
     // Add out of range global IP.
-    variable_set('restrict_by_ip_login_range', '127.0.0.0/8');
+    config_set('restrict_by_ip.settings', 'login_range', $this->cidr);
     // Add in range user IP.
     db_query("INSERT INTO {restrict_by_ip} (uid, restrict_by_ip_address) VALUES (:uid, :ip)", array(
       ':uid' => $this->regularUser->uid,
@@ -94,7 +104,7 @@ class RestrictByIpLoginTests extends DrupalWebTestCase {
   // User disallowed login when users IP doesn't match global or users range.
   public function testIpDifferGlobalDiffUser() {
     // Add out of range global IP.
-    variable_set('restrict_by_ip_login_range', '10.0.0.0/8');
+    config_set('restrict_by_ip.settings', 'login_range', '10.0.0.0/8');
     // Add in range user IP.
     db_query("INSERT INTO {restrict_by_ip} (uid, restrict_by_ip_address) VALUES (:uid, :ip)", array(
       ':uid' => $this->regularUser->uid,
@@ -107,14 +117,14 @@ class RestrictByIpLoginTests extends DrupalWebTestCase {
   // User can login when users IP matches global and users range.
   public function testIpMatchGlobalMatchUser() {
     // Add out of range global IP.
-    variable_set('restrict_by_ip_login_range', '127.0.0.0/8');
+    config_set('restrict_by_ip.settings', 'login_range', $this->cidr);
     // Add in range user IP.
     db_query("INSERT INTO {restrict_by_ip} (uid, restrict_by_ip_address) VALUES (:uid, :ip)", array(
       ':uid' => $this->regularUser->uid,
-      ':ip' => '127.0.0.0/8',
+      ':ip' => $this->cidr,
     ));
 
-    $this->drupalLogin($this->regularUser);
+    $this->backdropLogin($this->regularUser);
   }
 
   // Test that deleting a user also removes any IP restrictions.
@@ -139,7 +149,7 @@ class RestrictByIpLoginTests extends DrupalWebTestCase {
       'name' => $this->regularUser->name,
       'pass' => $this->regularUser->pass_raw
     );
-    $this->drupalPost('user', $edit, t('Log in'));
+    $this->backdropPost('user', $edit, t('Log in'));
 
     $this->assertNoLink(t('Log out'), 0, t('User %name unsuccessfully logged in.', array('%name' => $this->regularUser->name)), t('User login'));
   }
@@ -149,78 +159,83 @@ class RestrictByIpLoginTests extends DrupalWebTestCase {
  * Test that role restrictions work.
  * Assumes that local testing environment has IP address of 127.0.0.1.
  */
-class RestrictByIpRoleTests extends DrupalWebTestCase {
-  private $regularUser;
+class RestrictByIpRoleTests extends BackdropWebTestCase {
+  /**
+   * @var User
+   */
+  protected $regularUser;
+
+  /**
+   * @var User
+   */
+  protected $adminUser;
+
   private $role = array();
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Restrict Role by IP Address',
-      'description' => 'Tests roles are restricted to certain IP address range(s).',
-      'group' => 'Restrict By IP',
-    );
-  }
+  /**
+   * @var string
+   */
+  protected $cidr;
 
   public function setUp() {
     // Enable modules needed for these tests.
     parent::setUp('restrict_by_ip');
 
     // Create a user that we'll use to test logins.
-    $this->regularUser = $this->drupalCreateUser();
+    $this->regularUser = $this->backdropCreateUser();
+
+    // Admin user
+    $this->adminUser = $this->backdropCreateUser(array('administer permissions', 'administer users', 'assign roles'));
+
+    // Need a real IP address which can depend on the testing setup. Give it
+    // a possible (likely?) cidr.
+    $this->cidr = ip_address() . '/32';
 
     // Create a role with administer permissions so we can load the user edit,
     // page and test if the user has this role when logged in.
-    $rid = $this->drupalCreateRole(array('administer permissions'));
+    $rid = $this->backdropCreateRole(array('administer permissions'));
     $roles = user_roles();
-    $this->role['id'] = $rid;
-    $this->role['name'] = $roles[$rid];
+    $this->role['name'] = $rid;
+    $this->role['label'] = $roles[$rid];
 
     // Add created role to user.
-    $new_roles = $this->regularUser->roles + array($rid => $roles[$rid]);
-    user_save($this->regularUser, array('roles' => $new_roles));
+    $this->regularUser->roles[] = $rid;
+    $this->regularUser->save();
   }
 
   public function testRoleAppliedNoRestrictions() {
-    $this->drupalLogin($this->regularUser);
-    $this->drupalGet('user/' . $this->regularUser->uid . '/edit');
-    $this->assertText($this->role['name']);
+    $this->backdropLogin($this->adminUser);
+    $this->backdropGet('user/' . $this->regularUser->uid . '/edit');
+    $this->assertText($this->role['label']);
   }
 
   public function testRoleAppliedMatchIP() {
-    variable_set('restrict_by_ip_role_' . _restrict_by_ip_hash_role_name($this->role['name']), '127.0.0.0/8');
-    $this->drupalLogin($this->regularUser);
-    $this->drupalGet('user/' . $this->regularUser->uid . '/edit');
-    $this->assertText($this->role['name']);
+    config_set('restrict_by_ip.settings', 'roles.' . $this->role['name'], $this->cidr);
+    $this->backdropLogin($this->adminUser);
+    $this->backdropGet('user/' . $this->regularUser->uid . '/edit');
+    $this->assertText($this->role['label']);
   }
 
   public function testRoleDeniedDifferIP() {
-    variable_set('restrict_by_ip_role_' . _restrict_by_ip_hash_role_name($this->role['name']), '10.0.0.0/8');
-    $this->drupalLogin($this->regularUser);
-    $this->drupalGet('user/' . $this->regularUser->uid . '/edit');
-    $this->assertNoText($this->role['name']);
-  }
-
-  // Test ip restrictions
-  public function testUIRoleRenamed() {
-    variable_set('restrict_by_ip_role_' . _restrict_by_ip_hash_role_name($this->role['name']), '127.0.0.0/8');
-    $this->drupalLogin($this->regularUser);
-    $form = array();
-    $form['name'] = 'a new role name';
-    $this->drupalPost('admin/people/permissions/roles/edit/' . $this->role['id'], $form, t('Save role'));
-    $this->assertText('The role has been renamed.');
-    $ip = variable_get('restrict_by_ip_role_' . _restrict_by_ip_hash_role_name('a new role name'), '');
-    $this->assertEqual($ip, '127.0.0.0/8', 'IP restriction updated');
+    $this->backdropLogin($this->adminUser);
+    config_set('restrict_by_ip.settings', 'roles.' . $this->role['name'], '10.0.0.0/8');
+    $this->backdropLogin($this->regularUser);
+    $this->backdropGet('user/' . $this->regularUser->uid . '/edit');
+    $this->assertNoText($this->role['label']);
   }
 
   public function testUIRoleDeleted() {
-    variable_set('restrict_by_ip_role_' . _restrict_by_ip_hash_role_name($this->role['name']), '127.0.0.0/8');
-    $this->drupalLogin($this->regularUser);
-    $form = array();
-    $this->drupalPost('admin/people/permissions/roles/edit/' . $this->role['id'], $form, t('Delete role'));
-    $this->drupalPost(NULL, $form, t('Delete'));
-    $this->assertText('The role has been deleted.');
+    $this->backdropLogin($this->adminUser);
+
+    config_set('restrict_by_ip.settings', 'roles.' . $this->role['name'], $this->cidr);
+    $this->backdropGet('admin/config/people/roles/delete/' . $this->role['name']);
+    $this->backdropPost(NULL, array(), t('Delete'));
+    $this->assertText('The ' . $this->role['label'] . ' role has been deleted.');
     // If we get the default, we know the variable is deleted.
-    $ip = variable_get('restrict_by_ip_role_' . _restrict_by_ip_hash_role_name($this->role['name']), 'ip default');
+    $ip = config_get('restrict_by_ip.settings', 'roles.' . $this->role['name']);
+    if (!$ip) {
+      $ip = 'ip default';
+    }
     $this->assertEqual($ip, 'ip default', 'IP restriction deleted');
   }
 }
@@ -229,35 +244,39 @@ class RestrictByIpRoleTests extends DrupalWebTestCase {
  * Test that user is redirected to error page when login denied.
  * Assumes that local testing environment has IP address of 127.0.0.1.
  */
-class RestrictByIpRedirectTests extends DrupalWebTestCase {
-  private $regularUser;
-  private $loginDeniedNode;
+class RestrictByIpRedirectTests extends BackdropWebTestCase {
+  /**
+   * @var User
+   */
+  protected $regularUser;
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Redirect When Login Denied',
-      'description' => 'Tests user is redirected when login deneid.',
-      'group' => 'Restrict By IP',
-    );
-  }
+  /**
+   * @var User
+   */
+  protected $adminUser;
+
+  private $loginDeniedNode;
 
   public function setUp() {
     // Enable modules needed for these tests.
     parent::setUp('restrict_by_ip');
 
     // Create a user that we'll use to test logins.
-    $this->regularUser = $this->drupalCreateUser();
+    $this->regularUser = $this->backdropCreateUser();
+
+    // Admin user
+    $this->adminUser = $this->backdropCreateUser(array('administer permissions', 'administer users', 'assign roles'));
 
     // Create a page users will get redirected to when denied login.
-    $this->loginDeniedNode = $this->drupalCreateNode();
-    variable_set('restrict_by_ip_error_page', 'node/' . $this->loginDeniedNode->nid);
+    $this->loginDeniedNode = $this->backdropCreateNode();
+    config_set('restrict_by_ip.settings', 'error_page', 'node/' . $this->loginDeniedNode->nid);
   }
 
   // User redirected when outside global range and no destination query
   // parameter is present.
   public function testIpDifferGlobalNoDestination() {
     // Add global IP range.
-    variable_set('restrict_by_ip_login_range', '10.0.0.0/8');
+    config_set('restrict_by_ip.settings', 'login_range', '10.0.0.0/8');
     $this->assertRedirected();
   }
 
@@ -277,8 +296,8 @@ class RestrictByIpRedirectTests extends DrupalWebTestCase {
   // is present.
   public function testIpDifferGlobalWithDestination() {
     // Add global IP range.
-    variable_set('restrict_by_ip_login_range', '10.0.0.0/8');
-    $this->assertRedirected('node');
+    config_set('restrict_by_ip.settings', 'login_range', '10.0.0.0/8');
+    $this->assertRedirected('node/2');
   }
 
   // User redirected when outside user range and a destination query parameter
@@ -290,7 +309,7 @@ class RestrictByIpRedirectTests extends DrupalWebTestCase {
       ':ip' => '10.0.0.0/8',
     ));
 
-    $this->assertRedirected('node');
+    $this->assertRedirected('node/2');
   }
 
   // Assert user gets redirected when login denied.
@@ -305,7 +324,7 @@ class RestrictByIpRedirectTests extends DrupalWebTestCase {
       $options['query'] = array('destination' => $destination);
     }
 
-    $this->drupalPost('user', $edit, t('Log in'), $options);
+    $this->backdropPost('user/login', $edit, t('Log in'), $options);
 
     $this->assertNoLink(t('Log out'), 0, t('User %name unsuccessfully logged in.', array('%name' => $this->regularUser->name)), t('User login'));
 
@@ -317,24 +336,26 @@ class RestrictByIpRedirectTests extends DrupalWebTestCase {
  * Test admin interfaces.
  * Assumes that local testing environment has IP address of 127.0.0.1.
  */
-class RestrictByIpUITests extends DrupalWebTestCase {
-  private $adminUser;
+class RestrictByIpUITests extends BackdropWebTestCase {
+  /**
+   * @var User
+   */
+  protected $adminUser;
 
-  public static function getInfo() {
-    return array(
-      'name' => 'UI',
-      'description' => 'Tests admin UIs.',
-      'group' => 'Restrict By IP',
-    );
-  }
+  /**
+   * @var string
+   */
+  protected $cidr;
 
   public function setUp() {
     // Enable modules needed for these tests.
     parent::setUp('restrict_by_ip');
 
     // Create admin user that can configure restrict_by_ip module and users.
-    $this->adminUser = $this->drupalCreateUser(array('administer restrict by ip', 'administer users'));
-    $this->drupalLogin($this->adminUser);
+    $this->adminUser = $this->backdropCreateUser(array('administer restrict by ip', 'administer users'));
+    $this->backdropLogin($this->adminUser);
+
+    $this->cidr = ip_address() . '/32';
   }
 
   // Test validation function on user add form.
@@ -342,11 +363,11 @@ class RestrictByIpUITests extends DrupalWebTestCase {
     $form = array();
     $form['name'] = $this->randomName(8);
     $form['mail'] = $this->randomName(5) . '@domain.notatld';
+    $form['notify'] = FALSE;
     $pass = $this->randomName(5);
-    $form['pass[pass1]'] = $pass;
-    $form['pass[pass2]'] = $pass;
+    $form['pass'] = $pass;
     $form['restrict_by_ip_address'] = 'not_an_ip';
-    $this->drupalPost('admin/people/create', $form, t('Create new account'));
+    $this->backdropPost('admin/people/create', $form, t('Create new account'));
     $this->assertText('IP Address in Incorrect Format.');
   }
 
@@ -355,135 +376,113 @@ class RestrictByIpUITests extends DrupalWebTestCase {
     $form = array();
     $form['name'] = $this->randomName(8);
     $form['mail'] = $this->randomName(5) . '@domain.notatld';
+    $form['notify'] = FALSE;
     $pass = $this->randomName(5);
-    $form['pass[pass1]'] = $pass;
-    $form['pass[pass2]'] = $pass;
-    $form['restrict_by_ip_address'] = '127.0.0.1/32';
-    $this->drupalPost('admin/people/create', $form, t('Create new account'));
+    $form['pass'] = $pass;
+    $form['restrict_by_ip_address'] = $this->cidr;
+    $this->backdropPost('admin/people/create', $form, t('Create new account'));
     $user = user_load_by_name($form['name']);
-    $this->assertText(t('Created a new user account for @name. No e-mail has been sent.', array(
+    $this->assertText(t('Created a new user account for @name. No email has been sent.', array(
       '@name' => $form['name']
     )));
-    $this->drupalGet('user/' . $user->uid . '/edit');
+    $this->backdropGet('user/' . $user->uid . '/edit');
     $this->assertFieldByName('restrict_by_ip_address', $form['restrict_by_ip_address']);
   }
 
   // Test validation function on user edit form.
   public function testUserEditValidation() {
-    $user = $this->drupalCreateUser();
-    $this->drupalGet('user/' . $user->uid . '/edit');
+    $user = $this->backdropCreateUser();
+    $this->backdropGet('user/' . $user->uid . '/edit');
     $this->assertFieldByName('restrict_by_ip_address', '');
 
     $form = array();
     $form['restrict_by_ip_address'] = 'not_an_ip';
-    $this->drupalPost('user/' . $user->uid . '/edit', $form, t('Save'));
+    $this->backdropPost('user/' . $user->uid . '/edit', $form, t('Save'));
     $this->assertText('IP Address in Incorrect Format.');
     $this->assertNoText('The changes have been saved.');
   }
 
   // Test changing ip restrictions on user edit form.
   public function testUserEditSubmit() {
-    $user = $this->drupalCreateUser();
-    $this->drupalGet('user/' . $user->uid . '/edit');
+    $user = $this->backdropCreateUser();
+    $this->backdropGet('user/' . $user->uid . '/edit');
     $this->assertFieldByName('restrict_by_ip_address', '');
 
     $form = array();
-    $form['restrict_by_ip_address'] = '127.0.0.1/32';
-    $this->drupalPost('user/' . $user->uid . '/edit', $form, t('Save'));
+    $form['restrict_by_ip_address'] = $this->cidr;
+    $this->backdropPost('user/' . $user->uid . '/edit', $form, t('Save'));
     $this->assertText('The changes have been saved.');
+    $this->backdropGet('user/' . $user->uid . '/edit');
     $this->assertFieldByName('restrict_by_ip_address', $form['restrict_by_ip_address']);
   }
 
   // Test validation function on admin/config/people/restrict_by_ip/login/edit/%.
   public function testAdminUserValidation() {
-    $user = $this->drupalCreateUser();
+    $user = $this->backdropCreateUser();
     $form = array();
     $form['restriction'] = 'not_an_ip';
-    $this->drupalPost('admin/config/people/restrict_by_ip/login/edit/' . $user->uid, $form, t('Save restriction'));
+    $this->backdropPost('admin/config/people/restrict_by_ip/login/edit/' . $user->uid, $form, t('Save restriction'));
     $this->assertText('IP Address in Incorrect Format.');
   }
 
   // Test changing ip restrictions on admin/config/people/restrict_by_ip/login/edit/%.
   public function testAdminUserSubmit() {
-    $user = $this->drupalCreateUser();
+    $user = $this->backdropCreateUser();
     $form = array();
-    $form['restriction'] = '127.0.0.1/32';
-    $this->drupalPost('admin/config/people/restrict_by_ip/login/edit/' . $user->uid, $form, t('Save restriction'));
+    $form['restriction'] = $this->cidr;
+    $this->backdropPost('admin/config/people/restrict_by_ip/login/edit/' . $user->uid, $form, t('Save restriction'));
     $this->assertText('User restriction has been saved.');
-    $this->drupalGet('admin/config/people/restrict_by_ip/login/edit/' . $user->uid);
+    $this->backdropGet('admin/config/people/restrict_by_ip/login/edit/' . $user->uid);
     $this->assertFieldByName('restriction', $form['restriction']);
-  }
-
-  // Test the restrict by ip general settings form.
-  public function testGeneralSettings() {
-    $form = array();
-    $form['restrict_by_ip_header'] = $this->randomName(5);
-    $this->drupalPost('admin/config/people/restrict_by_ip', $form, t('Save configuration'));
-    $this->assertText('The configuration options have been saved.');
-    $this->assertFieldByName('restrict_by_ip_header', $form['restrict_by_ip_header']);
   }
 
   // Test validation on restrict login by ip settings form.
   public function testLoginByIpSettingsValidation() {
     $form = array();
-    $form['restrict_by_ip_login_range'] = 'not_an_ip';
-    $this->drupalPost('admin/config/people/restrict_by_ip/login', $form, t('Save configuration'));
+    $form['login_range'] = 'not_an_ip';
+    $this->backdropPost('admin/config/people/restrict_by_ip/login', $form, t('Save configuration'));
     $this->assertText('IP Address in Incorrect Format.');
   }
 
   // Test restrict login by ip settings form.
   public function testLoginByIpSettingsSubmit() {
     $form = array();
-    $form['restrict_by_ip_error_page'] = $this->randomName(5);
-    $form['restrict_by_ip_login_range'] = '127.0.0.1/32';
-    $this->drupalPost('admin/config/people/restrict_by_ip/login', $form, t('Save configuration'));
+    $form['error_page'] = 'about';
+    $form['login_range'] = $this->cidr;
+    $this->backdropPost('admin/config/people/restrict_by_ip/login', $form, t('Save configuration'));
     $this->assertText('The configuration options have been saved.');
-    $this->assertFieldByName('restrict_by_ip_error_page', $form['restrict_by_ip_error_page']);
-    $this->assertFieldByName('restrict_by_ip_login_range', $form['restrict_by_ip_login_range']);
+    $this->assertFieldByName('error_page', $form['error_page']);
+    $this->assertFieldByName('login_range', $form['login_range']);
   }
 
   // Test validation on restrict role by ip settings form.
   public function testRoleByIpSettingsValidation() {
     // Create a role to test.
-    $rid = $this->drupalCreateRole(array('access content'));
-    $roles = user_roles();
-    $rname = $roles[$rid];
-    $rname_hashed = _restrict_by_ip_hash_role_name($rname);
+    $rid = $this->backdropCreateRole(array('access content'));
 
     $form = array();
-    $form['restrict_by_ip_role_' . $rname_hashed] = 'not_an_ip';
-    $this->drupalPost('admin/config/people/restrict_by_ip/role', $form, t('Save configuration'));
+    $form['role_' . $rid] = 'not_an_ip';
+    $this->backdropPost('admin/config/people/restrict_by_ip/role', $form, t('Save configuration'));
     $this->assertText('IP Address in Incorrect Format.');
   }
 
   // Test restrict role by ip settings form.
   public function testRoleByIpSettingsSubmit() {
     // Create a role to test.
-    $rid = $this->drupalCreateRole(array('access content'));
-    $roles = user_roles();
-    $rname = $roles[$rid];
-    $rname_hashed = _restrict_by_ip_hash_role_name($rname);
+    $rid = $this->backdropCreateRole(array('access content'));
 
     $form = array();
-    $form['restrict_by_ip_role_' . $rname_hashed] = '127.0.0.1/32';
-    $this->drupalPost('admin/config/people/restrict_by_ip/role', $form, t('Save configuration'));
+    $form['role_' . $rid] = $this->cidr;
+    $this->backdropPost('admin/config/people/restrict_by_ip/role', $form, t('Save configuration'));
     $this->assertText('The configuration options have been saved.');
-    $this->assertFieldByName('restrict_by_ip_role_' . $rname_hashed, $form['restrict_by_ip_role_' . $rname_hashed]);
+    $this->assertFieldByName('role_' . $rid, $form['role_' . $rid]);
   }
 }
 
-class RestrictByIpUnitTestCase extends DrupalUnitTestCase {
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Restrict By IP Unit Tests',
-      'description' => 'Test the restrict by ip module.',
-      'group' => 'Restrict By IP',
-    );
-  }
+class RestrictByIpUnitTestCase extends BackdropUnitTestCase {
 
   public function setUp() {
-    drupal_load('module', 'restrict_by_ip');
+    backdrop_load('module', 'restrict_by_ip');
     parent::setUp();
   }
 

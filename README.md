@@ -1,40 +1,34 @@
-Description
-===========
+# Restrict by IP
 
-In general, this module provides features that allow an IP address (or range of
-IP addresses) to be whitelisted which restricts the functionality of users.
-Currently there are two features implemented.
+Provides features that allow an IP address (or range of IP addresses) to be
+whitelisted which restricts the functionality of users. Currently it is able to
+restrict login by IP address and restrict a role by IP.
 
 IP address ranges must be entered in CIDR notation separated with semi-colons
 and no trailing semi-colon (e.g., 10.20.30.0/24;192.168.199.1/32;1.0.0.0/8). For
-more information on CIDR notation, see
-http://www.brassy.net/2007/mar/cidr_basic_subnetting.
+more information on [CIDR notation](http://www.brassy.net/2007/mar/cidr_basic_subnetting).
 
-Restrict login by IP
---------------------
+## Restrict login by IP
+
 When a user is restricted, that user will not be able to log in outside the
 defined IP address ranges. It is also possible to specify global IP address
 ranges, which apply to ALL users, including user1. Following a denied log-in
 attempt, a user is redirected to an error page as specified by the site
 administrator.
 
-Restrict role by IP
--------------------
+## Restrict role by IP
+
 When a role is restricted, that role will not be available to users outside the
 defined IP address ranges. Role restriction does not affect users' ability to
 log in, only the availability of the restricted role to users. Role restrictions
 are available for all roles, except "anonymous user" and "authenticated user."
 
-### Install
+## Install
 
-1. Follow the instructions at
-   https://drupal.org/documentation/install/modules-themes/modules-7.
+Install this module using the official Backdrop CMS instructions at
+<https://backdropcms.org/guide/modules>.
 
-### Upgrade
-
-1. Follow the instructions at https://drupal.org/node/250790.
-
-### Usage
+## Usage
 
 1. All configuration can be managed from administration pages located at
    Administration > Configuration > People > Restrict by IP.
@@ -48,10 +42,36 @@ are available for all roles, except "anonymous user" and "authenticated user."
 4. To remove an IP restriction, simply delete its value, and submit the
    configuration form.
 
-### Authors
+### Overriding settings
 
-Please see project page for current list of maintainers.
+All settings can be overridden in the settings.php page:
 
-* Matt Rice (mrice [at] mattrice.org)
-* Bobby Kramer (panthar1 [at] gmail.com)
-* James Gross (jamesrgross [at] gmail.com)
+```php
+$settings['restrict_by_ip.settings']['error_page'] = 'node/200';
+$settings['restrict_by_ip.settings']['login_range'] = '127.0.0.1/32';
+$settings['restrict_by_ip.settings']['roles'][''] = '127.0.0.1/32';
+```
+
+This sets the parameters that can also be managed through the admin web
+interface. You may want to do this whenever it is important to have such
+configuration separated in a multi-site environment or in automated
+deployments.
+
+## License
+
+This project is GPL v2 software. See the LICENSE.txt file in this
+directory for complete text.
+
+## Current Maintainers
+
+* [Herb v/d Dool](https://github.com/herbdool)
+* Seeking additional maintainers
+
+## Credits
+
+Ported from Drupal 7 (7.x-3.1) by [Herb v/d Dool](https://github.com/herbdool).
+
+Drupal maintainers.
+
+* [manuel.adan](https://www.drupal.org/u/manueladan)
+* [rocketeerbkw](https://www.drupal.org/u/rocketeerbkw)

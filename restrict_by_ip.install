@@ -23,51 +23,32 @@ function restrict_by_ip_schema() {
 }
 
 /**
- * Implementation of hook_uninstall().
+ * Implements hook_update_last_removed().
  */
-function restrict_by_ip_uninstall() {
-  // Drop variables.
-  $variables = array(
-    'restrict_by_ip_user_registration',
-    'restrict_by_ip_error_page',
-    'restrict_by_ip_login_range',
-    'restrict_by_ip_header',
-  );
-  foreach ($variables as $variable) {
-    variable_del($variable);
-  }
-  // Clean up role-based variables
-  db_query("DELETE FROM {variable} WHERE name LIKE 'restrict_by_ip_role%'");
-
-  drupal_set_message(t('Restrict Logon By IP module uninstalled successfully.'));
+function restrict_by_ip_update_last_removed() {
+  return 7301;
 }
 
 /**
- * Convert role restriction variables to use role names instead of role IDs.
+ * Move book settings from variables to config.
  */
-function restrict_by_ip_update_7300() {
-  $query = <<<EOL
-  select v.name, r.rid, r.name as role from {variable} v
-  left join {role} r on SUBSTR(v.name, 20) = r.rid
-  where v.name like 'restrict_by_ip_role%'
-EOL;
+function restrict_by_ip_update_1000() {
+  // Migrate variables to config.
+  $config = config('book.settings');
+  $config->set('error_page', update_variable_get('restrict_by_ip_error_page', ''));
+  $config->set('login_range', update_variable_get('restrict_by_ip_login_range', ''));
 
-  $rows = db_query($query);
-  foreach ($rows as $row) {
-    db_query("UPDATE {variable} SET name = :new WHERE name = :old", array(':new' =>
-      'restrict_by_ip_role_' . $row->role, ':old' => $row->name));
+  $user_roles = user_roles(TRUE); // Get all roles except anonymous.
+  unset($user_roles['authenticated']);
+
+  foreach ($user_roles as $rid => $label) {
+    $md5_label = md5($label);
+    $config->set('roles.' . $rid, update_variable_get('restrict_by_ip_role_' . $md5_label, ''));
+    update_variable_del('restrict_by_ip_role_' . $md5_label);
   }
-}
+  $config->save();
 
-/**
- * Convert role restriction variables to use hashed role names.
- */
-function restrict_by_ip_update_7301() {
-  $query = <<<EOL
-  update {variable}
-  set name = CONCAT('restrict_by_ip_role_', MD5(SUBSTR(name, 21)))
-  where name like 'restrict_by_ip_role%'
-EOL;
-
-  db_query($query);
+  // Delete variables.
+  update_variable_del('restrict_by_ip_error_page');
+  update_variable_del('restrict_by_ip_login_range');
 }

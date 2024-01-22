@@ -1,0 +1,29 @@
+[RestrictByIpLoginTests]
+name = Restrict Login by IP Address
+description = Tests logins are restricted to certain IP address range(s).
+group = Restrict By IP
+file = restrict_by_ip.test
+
+[RestrictByIpRoleTests]
+name = Restrict Role by IP Address
+description = Tests roles are restricted to certain IP address range(s).
+group = Restrict By IP
+file = restrict_by_ip.test
+
+[RestrictByIpRedirectTests]
+name = Redirect When Login Denied
+description = Tests user is redirected when login deneid.
+group = Restrict By IP
+file = restrict_by_ip.test
+
+[RestrictByIpUITests]
+name = UI
+description = Tests admin UIs.
+group = Restrict By IP
+file = restrict_by_ip.test
+
+[RestrictByIpUnitTestCase]
+name = Restrict By IP Unit Tests
+description = Test the restrict by ip module.
+group = Restrict By IP
+file = restrict_by_ip.test
