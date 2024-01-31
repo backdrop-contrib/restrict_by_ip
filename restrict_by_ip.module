@@ -403,7 +403,7 @@ function restrict_by_ip_role_check(&$user) {
   foreach ($user->roles as $rid => $label) {
     $ranges = $config->get('roles.' . $rid);
     // Only check IP if an IP restriction is set for this role.
-    if (strlen($ranges) > 0) {
+    if (!empty($ranges) && strlen($ranges) > 0) {
       $ipaddresses = explode(';', $ranges);
       $match = FALSE;
       foreach ($ipaddresses as $ipaddress) {
